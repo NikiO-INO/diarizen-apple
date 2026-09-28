@@ -28,7 +28,7 @@ wrappers once the pipeline is proven.
       `validation/fixtures/EN2002a.golden.rttm` for the Swift port to diff against.
 - **Gate:** ✅ segmentation parity; ✅ full-pipeline RTTM reproduction.
 
-## Phase 2 — Native CoreML production backend  🟢 segmentation converted + validated
+## Phase 2 — Native CoreML production backend  🟢 segmentation converted + runs from Swift
 - [x] `conversion/export_coreml.py`: convert **directly PyTorch → CoreML**
       (`ct.convert(..., convert_to="mlprogram")`), FP16, static single-chunk shape.
       Needed two export-only patches (`conversion/patches/wavlm_export_patch.py`):
@@ -46,11 +46,21 @@ wrappers once the pipeline is proven.
       Neural Engine predict indefinitely (~0% CPU) on this WavLM+Conformer model; CPU/GPU
       predict returns in ms. Validation loads `.cpuOnly`; the Swift `ComputePolicy` default
       is now `.cpuAndGPU`, with ANE opt-in/experimental until Phase 4 profiling.
-- [ ] `Sources/DiariZen/CoreMLBackend.swift` + model wrappers load the `.mlmodelc`
-      and run inference; `Pipeline.swift` wires segmentation → aggregation →
-      embeddings → clustering. (Backend policy done; wrappers still skeletons.)
-- **Gate:** ✅ segmentation converts + reproduces PyTorch decisions on CPU/GPU;
-  ⬜ full Swift pipeline reproduces the upstream RTTM end-to-end; ⬜ ANE path fixed.
+- [x] `CoreMLBackend.swift` loads an `.mlpackage` (compiles on the fly) or a
+      `.mlmodelc`; default `ComputePolicy` = `.cpuAndGPU` (ANE opt-in).
+- [x] `CoreMLSegmentation.segment` runs the model: packs `[Float]` → `(1,1,256000)`
+      `MLMultiArray` (feature `waveform`), decodes output `segmentation` `(1,799,11)`
+      → `[frames][classes]`. **Swift CoreML == Python CoreML, BIT-IDENTICAL**
+      (`validation/compare_swift_coreml.py`: raw max_abs=0.0, argmax_agree=100% on the
+      same raw input, CPU). Transitively PyTorch ≈ Swift-CoreML. `diarizen-cli` gains
+      `--dump-segmentation`/`--raw-input` for this parity; unit tests cover the decode.
+- [ ] Export the WeSpeaker embedding to CoreML (Python side: loader `embedding=None`
+      today) and implement `CoreMLEmbedding.embed`.
+- [ ] `Pipeline.swift` wires segmentation → aggregation (sliding-window overlap-add +
+      powerset) → embeddings → clustering. Aggregation is Swift; clustering is Phase 3.
+- **Gate:** ✅ segmentation converts + runs from Swift bit-identically to Python;
+  ⬜ embedding stage; ⬜ full Swift pipeline reproduces the upstream RTTM end-to-end;
+  ⬜ ANE path fixed.
 
 ## Phase 3 — Clustering & post-processing in Swift
 - [ ] Port VBx / AHC + powerset decoding + overlap handling to Swift/CPU (or reuse

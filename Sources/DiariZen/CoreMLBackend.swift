@@ -33,13 +33,28 @@ public struct CoreMLBackend {
 
     public let model: MLModel
 
-    public init(compiledModelURL: URL, policy: ComputePolicy = .cpuAndGPU) throws {
+    /// Load a CoreML model from either a compiled `.mlmodelc` or an `.mlpackage`
+    /// (compiled on the fly). `MLModel(contentsOf:)` only accepts a compiled model,
+    /// so an `.mlpackage` — what `export_coreml.py` produces — is compiled first.
+    public init(modelURL: URL, policy: ComputePolicy = .cpuAndGPU) throws {
         let config = MLModelConfiguration()
         config.computeUnits = policy.mlComputeUnits
+
+        let compiledURL: URL
+        if modelURL.pathExtension == "mlmodelc" {
+            compiledURL = modelURL
+        } else {
+            do {
+                compiledURL = try MLModel.compileModel(at: modelURL)
+            } catch {
+                throw DiariZenError.modelLoad("compile \(modelURL.lastPathComponent): \(error)")
+            }
+        }
+
         do {
-            self.model = try MLModel(contentsOf: compiledModelURL, configuration: config)
+            self.model = try MLModel(contentsOf: compiledURL, configuration: config)
         } catch {
-            throw DiariZenError.modelLoad("\(compiledModelURL.lastPathComponent): \(error)")
+            throw DiariZenError.modelLoad("\(compiledURL.lastPathComponent): \(error)")
         }
     }
 

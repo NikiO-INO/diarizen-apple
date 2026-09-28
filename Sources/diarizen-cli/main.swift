@@ -1,11 +1,16 @@
+import CoreML
 import DiariZen
 import Foundation
 
 // Thin CLI: audio → RTTM, mirroring the `fluidaudiocli nemotron3-diarize`
 // interface so hosts (meetlify) can drop it in as a sidecar diarization engine.
 //
-//   diarizen-cli <audio.wav> --models <dir> [--compute-units all|cpu-ane|cpu]
+//   diarizen-cli <audio.wav> --models <dir> [--compute-units cpu-gpu|all|cpu-ane|cpu]
 //                            [--output <rttm>]
+//                            [--dump-segmentation <json>]  # Phase 2 parity dump
+//
+// --compute-units default is cpu-gpu: the ANE path (all / cpu-ane) DEADLOCKS the
+// first segmentation predict on this model (see CoreMLBackend.ComputePolicy).
 
 func usage() -> Never {
     FileHandle.standardError.write(Data("""
@@ -13,18 +18,43 @@ func usage() -> Never {
           diarizen-cli <audio> [options]
 
         Options:
-          --models <dir>          Directory with Segmentation.mlmodelc + Embedding.mlmodelc
-          --compute-units <u>     all | cpu-ane | cpu   (default: all)
-          --output <file>         Write RTTM (default: stdout)
+          --models <dir>            Directory with Segmentation.mlpackage (+ Embedding.mlpackage)
+          --compute-units <u>       cpu-gpu | all | cpu-ane | cpu   (default: cpu-gpu)
+          --output <file>           Write RTTM (default: stdout)
+          --dump-segmentation <f>   Run segmentation on the first 16 s window, write
+                                    the [frames][classes] log-probs as JSON, and exit
+                                    (Phase 2 parity against the Python backend)
+          --raw-input <f>           Read the window as little-endian Float32 samples
+                                    from <f> instead of decoding <audio> (isolates
+                                    inference from the audio loader for parity)
 
         """.utf8))
     exit(2)
 }
 
+/// Read a little-endian Float32 sample file into `[Float]`.
+func readRawFloat32(_ path: String) throws -> [Float] {
+    let data = try Data(contentsOf: URL(fileURLWithPath: path))
+    return data.withUnsafeBytes { raw in Array(raw.bindMemory(to: Float32.self)) }
+}
+
+/// Prefer an `.mlpackage` (what export_coreml.py writes); fall back to a compiled
+/// `.mlmodelc`. Returns nil if neither exists.
+func resolveModel(dir: String, base: String) -> URL? {
+    let d = URL(fileURLWithPath: dir)
+    for ext in ["mlpackage", "mlmodelc"] {
+        let u = d.appendingPathComponent("\(base).\(ext)")
+        if FileManager.default.fileExists(atPath: u.path) { return u }
+    }
+    return nil
+}
+
 var audioPath: String?
 var modelsDir: String?
 var outputPath: String?
-var policy: CoreMLBackend.ComputePolicy = .all
+var dumpSegPath: String?
+var rawInputPath: String?
+var policy: CoreMLBackend.ComputePolicy = .cpuAndGPU
 
 var args = Array(CommandLine.arguments.dropFirst())
 var i = 0
@@ -33,12 +63,15 @@ while i < args.count {
     switch a {
     case "--models": i += 1; modelsDir = args[safe: i]
     case "--output": i += 1; outputPath = args[safe: i]
+    case "--dump-segmentation": i += 1; dumpSegPath = args[safe: i]
+    case "--raw-input": i += 1; rawInputPath = args[safe: i]
     case "--compute-units":
         i += 1
         switch args[safe: i] {
         case "cpu": policy = .cpuOnly
         case "cpu-ane": policy = .cpuAndNeuralEngine
-        default: policy = .all
+        case "all": policy = .all
+        default: policy = .cpuAndGPU
         }
     case "--help", "-h": usage()
     default:
@@ -47,18 +80,44 @@ while i < args.count {
     i += 1
 }
 
-guard let audioPath, let modelsDir else { usage() }
+guard let modelsDir, audioPath != nil || rawInputPath != nil else { usage() }
 
 do {
-    let waveform = try AudioLoader.loadMono(url: URL(fileURLWithPath: audioPath))
-    let segURL = URL(fileURLWithPath: modelsDir).appendingPathComponent("Segmentation.mlmodelc")
-    let embURL = URL(fileURLWithPath: modelsDir).appendingPathComponent("Embedding.mlmodelc")
+    let waveform: [Float]
+    if let rawInputPath {
+        waveform = try readRawFloat32(rawInputPath)
+    } else {
+        waveform = try AudioLoader.loadMono(url: URL(fileURLWithPath: audioPath!))
+    }
+
+    guard let segURL = resolveModel(dir: modelsDir, base: "Segmentation") else {
+        throw DiariZenError.modelLoad("Segmentation.mlpackage/.mlmodelc not found in \(modelsDir)")
+    }
+    let segmentation = CoreMLSegmentation(
+        backend: try CoreMLBackend(modelURL: segURL, policy: policy)
+    )
+
+    // Phase 2 parity mode: dump the segmentation of the first window and exit.
+    if let dumpSegPath {
+        let n = CoreMLSegmentation.windowSamples
+        let window = Array(waveform.prefix(n))
+        let seg = try segmentation.segment(chunk: window)
+        let data = try JSONEncoder().encode(seg.frames)
+        try data.write(to: URL(fileURLWithPath: dumpSegPath))
+        FileHandle.standardError.write(Data(
+            "dumped segmentation \(seg.frames.count)×\(seg.frames.first?.count ?? 0) → \(dumpSegPath)\n".utf8))
+        exit(0)
+    }
+
+    guard let embURL = resolveModel(dir: modelsDir, base: "Embedding") else {
+        throw DiariZenError.modelLoad("Embedding.mlpackage/.mlmodelc not found in \(modelsDir)")
+    }
     let pipeline = DiarizationPipeline(
-        segmentation: CoreMLSegmentation(backend: try CoreMLBackend(compiledModelURL: segURL, policy: policy)),
-        embeddings: CoreMLEmbedding(backend: try CoreMLBackend(compiledModelURL: embURL, policy: policy))
+        segmentation: segmentation,
+        embeddings: CoreMLEmbedding(backend: try CoreMLBackend(modelURL: embURL, policy: policy))
     )
     let turns = try pipeline.diarize(waveform: waveform, sampleRate: 16_000)
-    let fileId = URL(fileURLWithPath: audioPath).deletingPathExtension().lastPathComponent
+    let fileId = audioPath.map { URL(fileURLWithPath: $0).deletingPathExtension().lastPathComponent } ?? "audio"
     let rttm = RTTM.serialize(turns, fileId: fileId)
     if let outputPath {
         try rttm.write(toFile: outputPath, atomically: true, encoding: .utf8)

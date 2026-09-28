@@ -61,6 +61,9 @@ def main() -> None:
         traced,
         convert_to="mlprogram",
         inputs=[ct.TensorType(name="waveform", shape=example.shape)],
+        # Name the sole output so Swift/validation reference a stable feature name
+        # instead of coremltools' auto-generated `var_NNNN`.
+        outputs=[ct.TensorType(name="segmentation")],
         compute_precision=compute_precision,
         # Let Swift pick compute units at load time; converting for `ALL` keeps
         # the ANE path available. Profiling in Phase 4 decides the runtime default.
