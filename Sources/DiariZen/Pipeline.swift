@@ -42,7 +42,7 @@ public struct DiarizationFeatures: Sendable {
 public final class DiarizationPipeline {
     private let segmentation: SegmentationModel
     private let embeddings: EmbeddingModel
-    private let clustering: Clustering
+    private let clustering: VBxClustering?
     private let powerset: Powerset
 
     // Pipeline constants (base-s80-md), mirroring the DiariZen config + pyannote.
@@ -50,11 +50,13 @@ public final class DiarizationPipeline {
     static let stepSeconds = 1.6        // segmentation_step * seg_duration = 0.1 * 16
     static let medianWindow = 11        // median_filter size (1, 11, 1)
     static let minNumFrames = 2         // ceil(799 * min_num_samples/num_samples) for embeddings
+    // Segmentation receptive field (base-s80-md): 799 frames of 25 ms every 20 ms.
+    static let frameResolution = FrameResolution(start: -0.00753125, duration: 0.025, step: 0.02)
 
     public init(
         segmentation: SegmentationModel,
         embeddings: EmbeddingModel,
-        clustering: Clustering = VBxClustering(),
+        clustering: VBxClustering? = nil,
         powerset: Powerset = Powerset(numSpeakers: 4, maxSetSize: 2)
     ) {
         self.segmentation = segmentation
@@ -63,11 +65,24 @@ public final class DiarizationPipeline {
         self.powerset = powerset
     }
 
-    /// Diarize a mono 16 kHz waveform into speaker turns.
-    /// TODO(phase3): clustering + reconstruction. Phase 2 builds the features below.
+    /// Diarize a mono 16 kHz waveform into speaker turns: Phase-2 features →
+    /// VBx clustering → reconstruction → binarized turns.
     public func diarize(waveform: [Float], sampleRate: Int) throws -> [SpeakerTurn] {
-        _ = try extractFeatures(waveform: waveform, sampleRate: sampleRate)
-        throw DiariZenError.notImplemented("DiarizationPipeline.diarize clustering (phase 3)")
+        guard let clustering else {
+            throw DiariZenError.modelLoad("clustering (PLDA) not configured")
+        }
+        let feats = try extractFeatures(waveform: waveform, sampleRate: sampleRate)
+        var hard = clustering.cluster(embeddings: feats.embeddings, binarized: feats.binarized)
+        // Inactive speakers (no active frame in a chunk) → -2, as in the pipeline.
+        for c in feats.binarized.indices {
+            for s in 0..<powerset.numSpeakers {
+                if !feats.binarized[c].contains(where: { $0[s] > 0.5 }) { hard[c][s] = -2 }
+            }
+        }
+        return Reconstruction.turns(
+            binarized: feats.binarized, hardClusters: hard, window: feats.window,
+            frame: Self.frameResolution, sampleRate: sampleRate
+        )
     }
 
     /// Phase 2: segmentation sliding window → powerset decode → median filter →

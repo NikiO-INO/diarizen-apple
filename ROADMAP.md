@@ -76,16 +76,26 @@ wrappers once the pipeline is proven.
       the aggregation logic): **binarized cell-agreement 100.000%**, **embeddings
       mean_cos 0.99991 / min 0.99980**. `dump_pipeline_oracle.py --segmentation coreml`
       + `compare_swift_features.py`; unit tests cover powerset/median/reflect.
-- [ ] Clustering + reconstruction → RTTM (Phase 3) to close the full end-to-end gate.
+- [x] Clustering + reconstruction → RTTM — see Phase 3, full end-to-end gate met.
 - **Gate:** ✅ segmentation + embedding stages run from Swift and match Python;
   ✅ Swift aggregation reproduces pyannote's pre-clustering features exactly;
-  ⬜ full Swift RTTM (needs Phase 3 clustering); ⬜ ANE path fixed.
+  ✅ full Swift RTTM (Phase 3, DER 0.495%); ⬜ ANE path fixed.
 
-## Phase 3 — Clustering & post-processing in Swift
-- [ ] Port VBx / AHC + powerset decoding + overlap handling to Swift/CPU (or reuse
-      an existing implementation), validated against the Python clustering on the
-      same segmentation outputs.
-- **Gate:** Swift clustering matches Python clustering on identical inputs.
+## Phase 3 — Clustering & post-processing in Swift  ✅ DONE
+- [x] **VBx core** (`PLDA.swift`, `VBx.swift`): PLDA transform (constants from
+      `export_plda.py`, eigh pre-solved) + the loopProb=0 GMM VBx. Bit-exact vs the
+      oracle: fea 6.9e-14, gamma 5.7e-17, pi 1.1e-27.
+- [x] **AHC** (`AHC.swift`): centroid linkage + distance-criterion flat cut → VBx init.
+- [x] **Assignment** (`Clustering.swift`, `Hungarian.swift`): filter_embeddings
+      (clean-frame gate), cluster centroids, cosine `cdist`, constrained argmax
+      (max-weight assignment), renumber → hard_clusters.
+- [x] **Reconstruction** (`Reconstruction.swift`): pyannote reconstruct →
+      to_diarization (overlap-add `aggregate` + per-frame top-`count`) → `Binarize`.
+- **Gate met:** full native Swift pipeline (CoreML seg → Swift fbank + CoreML embed →
+  Swift VBx → reconstruct → RTTM) reproduces the pyannote (CoreML-seg) oracle at
+  **DER 0.495%** (12↔12 turns) on EN2002a. `compare_swift_cluster.py`,
+  `compare_swift_rttm.py`, `dump_clustering_oracle.py`, `dump_rttm_oracle.py`; unit
+  tests cover Hungarian / AHC / cosine / Binarize.
 
 ## Phase 4 — CLI + benchmarks
 - [ ] `Sources/diarizen-cli`: `diarizen-cli <audio.wav> [--compute-units …] --output <rttm>`.

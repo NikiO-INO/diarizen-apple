@@ -171,9 +171,11 @@ do {
     guard let embURL = resolveModel(dir: modelsDir, base: "Embedding") else {
         throw DiariZenError.modelLoad("Embedding.mlpackage/.mlmodelc not found in \(modelsDir)")
     }
+    let plda = try PLDA(contentsOf: URL(fileURLWithPath: modelsDir).appendingPathComponent("plda_transform.json"))
     let pipeline = DiarizationPipeline(
         segmentation: segmentation,
-        embeddings: CoreMLEmbedding(backend: try CoreMLBackend(modelURL: embURL, policy: policy))
+        embeddings: CoreMLEmbedding(backend: try CoreMLBackend(modelURL: embURL, policy: policy)),
+        clustering: VBxClustering(plda: plda)
     )
 
     // Phase 2 parity mode: dump the pre-clustering features (binarized + embeddings).
