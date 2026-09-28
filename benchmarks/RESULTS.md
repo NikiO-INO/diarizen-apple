@@ -20,11 +20,18 @@ Beyond the 30 s parity clip, validated on the **full AMI EN2002a** (35.7 min, SD
 
 | | DER vs reference |
 |---|---:|
-| **Swift port** | **21.16%** |
-| DiariZen (PyTorch) | 21.10% |
-| Swift vs DiariZen (fidelity) | **1.90%** |
+| **Swift port — base-s80-md** | **21.16%** |
+| DiariZen base (PyTorch) | 21.10% |
+| Swift vs DiariZen base (fidelity) | **1.90%** |
+| **Swift port — large-s80-md-v2** | **17.50%** |
 
-The port reproduces DiariZen's accuracy on a real long meeting (0.06 pt from the
+Switching to `--models build/coreml-large` (large-s80-md-v2) improves DER to **17.50%**
+on the same file — the bigger model's gain (tracks DiariZen's published base→large
+improvement). Note large-v2's CoreML segmentation diverges from PyTorch at the tensor
+level (~29% argmax, accumulates through its 24 WavLM layers) but is tolerated
+downstream; base-s80-md remains the tensor-faithful default (1.90% fidelity).
+
+The base port reproduces DiariZen's accuracy on a real long meeting (0.06 pt from the
 PyTorch pipeline vs the reference; 1.90% DER between the two outputs). ~21% is this
 single hard meeting's difficulty — DiariZen's published **15.8%** is the AMI-SDM
 *corpus average*, and PyTorch scores the same ~21% here. The 35-min file exercised

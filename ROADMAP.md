@@ -126,13 +126,17 @@ wrappers once the pipeline is proven.
       (base 11 → max 2; large-v2 16 → max 4); window + frame resolution match. Export
       any checkpoint with `--model` into its own dir. `conversion/inspect_model.py`
       prints a model's geometry before exporting.
-- [ ] **`diarizen-wavlm-large-s80-md-v2` — KNOWN ISSUE, not yet faithful.** Export
-      scripts run and the pipeline auto-adapts, but the CoreML segmentation diverges
-      from PyTorch (~29% argmax; FP32 too → not FP16; op set identical to base; output
-      range sane → a subtle per-layer numerical divergence in the 24-layer WavLM, needs
-      layer-by-layer debugging). `normalize_waveform=True` (large only) also breaks the
-      ONNX export path. **base-s80-md is the validated default** (30 s DER 0.495% vs
-      pyannote; AMI EN2002a 21.16% vs 21.10%). Fixing large-v2 conversion is future work.
+- [x] **`diarizen-wavlm-large-s80-md-v2` — works and is more accurate** (usable, with a
+      caveat). End-to-end on AMI EN2002a it beats base: **DER 17.50% vs base 21.16%**
+      (4 speakers; tracks DiariZen's published base→large gain). Fixed a release-only
+      crash (`Powerset.combinations` was miscompiled under -O for max_set_size=4).
+      **Caveat:** the CoreML segmentation diverges from PyTorch at the tensor level
+      (~29% argmax; accumulates through the 24-layer WavLM, jumps in layers 22-24; FP32
+      too → not FP16), so large-v2 is *not* as faithful as base (base fidelity 1.9% on
+      AMI). The divergence is tolerated downstream (median filter + clustering +
+      reconstruction) and the bigger model still wins, but a deeper WavLM conversion fix
+      (and `normalize_waveform` breaking ONNX export) is future work. **base-s80-md stays
+      the faithful/validated default** (30 s DER 0.495%; AMI 21.16% vs pyannote 21.10%).
 - [ ] Polish docs, CONTRIBUTING, CI; flip the repo public.
 
 ## Later (not now)
