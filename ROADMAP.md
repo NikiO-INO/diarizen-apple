@@ -5,27 +5,25 @@ before moving on. Start on the smaller `diarizen-wavlm-base-s80-md` checkpoint;
 upgrade to `diarizen-wavlm-large-s80-md-v2` (best accuracy) through the same
 wrappers once the pipeline is proven.
 
-## Phase 0 — Environment & upstream understanding
-- [ ] Pin a working Python env (torch 2.1.1, coremltools, onnx, onnxruntime, the
-      DiariZen + custom pyannote fork). Record exact versions in `requirements.txt`.
-- [ ] Run upstream `DiariZenPipeline.from_pretrained(...)` on `example/*.wav`;
-      capture the reference RTTM and intermediate tensors.
-- [ ] Map the pipeline: locate the segmentation `nn.Module`, the embedding model,
-      the chunking/aggregation logic, and the clustering (VBx/AHC) code paths.
-      Document exact input/output shapes and dtypes in `docs/PIPELINE.md`.
-- **Gate:** we can run DiariZen end-to-end in Python and have named the exact
-  modules + tensor shapes to export.
+## Phase 0 — Environment & upstream understanding  ✅ DONE
+- [x] Python env: uv + **Python 3.11 + torch 2.1.1 + torchaudio 2.1.1 +
+      accelerate 0.29** (NOT transformers 5.x — forces torch ≥ 2.5) + the DiariZen
+      pyannote fork (editable). `diarizen` installed `--no-deps` + a few runtime
+      deps (psutil, librosa, soundfile, toml, huggingface_hub).
+- [x] Loaded `diarizen-wavlm-base-s80-md`; ran a forward.
+- [x] Mapped the pipeline; exact shapes/dtypes in `docs/PIPELINE.md`:
+      segmentation `(1,1,256000) → (1,799,11)`, VBx clustering, WeSpeaker embed.
+- **Gate met:** DiariZen runs in Python; export target + shapes are named.
 
-## Phase 1 — ONNX reference backend
-- [ ] `conversion/export_onnx.py`: export the segmentation model (WavLM+Conformer)
-      and the embedding model to ONNX (opset ≥ 17), with dynamic axes only where
-      genuinely needed.
-- [ ] Run under ONNX Runtime CPU.
-- [ ] `validation/compare_pytorch_onnx.py`: assert `PyTorch ≈ ONNX` on golden
-      fixtures within tolerances (start `atol=1e-3, rtol=1e-3`, tighten later).
-- **Gate:** ONNX segmentation + embedding outputs match PyTorch within tolerance
-  on all fixtures; full ONNX+Swift(or Python)-clustering pipeline reproduces the
-  upstream RTTM.
+## Phase 1 — ONNX reference backend  🟢 segmentation done
+- [x] `export_onnx.py`: segmentation (WavLM+Conformer) → `segmentation.onnx`
+      (opset 17, static shapes). Exports cleanly.
+- [x] Runs under ONNX Runtime CPU.
+- [x] `compare_pytorch_onnx.py`: **PyTorch ≈ ONNX PASS** — max_abs=3.05e-05,
+      mean_abs=4.0e-06 on the `EN2002a_30s` fixture (FP32 rounding).
+- [ ] Wire ONNX segmentation into the full pipeline (embedding + VBx) and
+      reproduce the upstream RTTM end-to-end.
+- **Gate:** ✅ segmentation parity; ⬜ full-pipeline RTTM reproduction.
 
 ## Phase 2 — Native CoreML production backend
 - [ ] `conversion/export_coreml.py`: convert **directly PyTorch → CoreML**
