@@ -48,6 +48,19 @@ Native Apple-Silicon DiariZen vs the upstream PyTorch pipeline.
   is what the original 13-minute "hang" turned out to be, before it caches.) ANE is
   *accurate* — end-to-end DER on `.cpuAndNeuralEngine` is 0.505% vs 0.495% on CPU — just
   not fast for this model.
+- **Why ANE is unused (compute-plan proof).** `benchmarks/compute_plan.py` reads the
+  CoreML `MLComputePlan` and tallies the preferred device per op (643 ops):
+  under **CPU+GPU → 643/643 on the GPU**; under **CPU+ANE → 643/643 on the CPU, 0 on the
+  Neural Engine.** CoreML's planner refuses to place any op of this model on the ANE —
+  the segmentation is transformer-heavy (linear ×110, matmul ×28, layer_norm ×47,
+  reshape ×106, transpose ×77) and several op types (linear, conv, gelu, reduce_mean)
+  aren't ANE-supported in this form. The ANE is a convolution accelerator; the embedding
+  **ResNet** (a conv net) *does* benefit from it, but the WavLM+Conformer segmentation
+  does not. Getting it onto the ANE would need re-architecting the model in "ANE
+  principles" form (4-D tensors, conv2d projections instead of linear, split attention
+  heads — Apple's *Deploying Transformers on the Apple Neural Engine*), i.e. a model
+  rewrite + weight re-map, not a conversion flag. Given CPU+GPU already hits RTF 0.055,
+  that optimization is low-ROI and left as possible future work.
 - **Embedding dominates** (~80 % of the time): 40 WeSpeaker ResNet CoreML predicts +
   the Swift kaldi fbank per 30 s (one per chunk × speaker). Clustering + reconstruction
   are <3 ms combined.
