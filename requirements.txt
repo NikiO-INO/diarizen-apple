@@ -1,0 +1,28 @@
+# Python environment for CONVERSION + VALIDATION only (not needed at inference).
+# Pin exact versions once Phase 0 confirms a working combo — coremltools and the
+# DiariZen/pyannote fork are the fragile pins.
+#
+# NOTE: DiariZen upstream pins torch==2.1.1. coremltools compatibility with a
+#   given torch is the usual sticking point; if they conflict, use two envs
+#   (one for ONNX export/validation, one for coremltools) rather than forcing one.
+
+# Core ML frameworks
+torch==2.1.1
+torchaudio==2.1.1
+
+# ONNX reference backend
+onnx>=1.16
+onnxruntime>=1.18            # add onnxruntime-silicon / CoreML EP as needed
+
+# CoreML production backend
+coremltools>=8.0
+
+# DiariZen + its deps (installed editable from source in Phase 0):
+#   git clone https://github.com/BUTSpeechFIT/DiariZen
+#   pip install -e DiariZen           # pulls its pyannote-audio fork + audiozen
+# huggingface_hub is used to fetch the (CC-BY-NC) checkpoints.
+huggingface_hub>=0.24
+transformers>=4.44            # WavLM
+numpy<2.0                     # keep < 2.0 until torch/coremltools are 2.x-clean
+soundfile
+scipy

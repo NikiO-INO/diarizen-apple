@@ -1,0 +1,41 @@
+# --- Model weights & converted artifacts: NEVER commit (CC BY-NC, see MODELS.md) ---
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.onnx
+*.ort
+*.mlpackage/
+*.mlmodel
+*.mlmodelc/
+build/
+checkpoints/
+models/
+weights/
+validation/fixtures/*.npy
+validation/fixtures/*.npz
+validation/fixtures/*.wav
+!validation/fixtures/.gitkeep
+
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+*.egg-info/
+
+# --- Swift / SwiftPM ---
+.build/
+.swiftpm/
+DerivedData/
+*.xcodeproj/
+
+# --- OS / editors ---
+.DS_Store
+*.swp
+.idea/
+.vscode/
