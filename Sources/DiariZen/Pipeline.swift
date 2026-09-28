@@ -166,6 +166,9 @@ public final class DiarizationPipeline {
 
         for (c, chunk) in binarized.enumerated() {
             let numFrames = chunk.count
+            // The fbank is the same for every speaker in a chunk — compute it once.
+            let fb = embeddings.fbank(region: windows[c])
+
             // clean_frames: 1 where fewer than 2 speakers active, else 0.
             var clean = [Bool](repeating: false, count: numFrames)
             for f in 0..<numFrames {
@@ -188,7 +191,7 @@ public final class DiarizationPipeline {
                     cleanSum += cv
                 }
                 let used = cleanSum > Float(Self.minNumFrames) ? cleanMask : mask
-                chunkEmb.append(try embeddings.embed(region: windows[c], weights: used))
+                chunkEmb.append(try embeddings.embed(fbank: fb, weights: used))
             }
             result.append(chunkEmb)
         }

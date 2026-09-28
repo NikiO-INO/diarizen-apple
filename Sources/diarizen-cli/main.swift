@@ -226,6 +226,10 @@ do {
     }
 
     let turns = try pipeline.diarize(waveform: waveform, sampleRate: 16_000)
+    let t = pipeline.timings
+    FileHandle.standardError.write(Data(String(
+        format: "timings: seg=%.2fs emb=%.2fs cluster=%.2fs recon=%.2fs total=%.2fs (%d turns)\n",
+        t.segmentation, t.embedding, t.clustering, t.reconstruction, t.total, turns.count).utf8))
     let fileId = audioPath.map { URL(fileURLWithPath: $0).deletingPathExtension().lastPathComponent } ?? "audio"
     let rttm = RTTM.serialize(turns, fileId: fileId)
     if let outputPath {

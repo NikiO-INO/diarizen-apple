@@ -2,18 +2,30 @@ import CoreML
 import Foundation
 
 /// Speaker-embedding extractor. The kaldi fbank frontend is native Swift
-/// (`KaldiFbank`); only the learned ResNet34 + masked pooling is CoreML. Maps an
-/// active speech region (+ its per-frame speaker mask) to a fixed embedding vector.
+/// (`KaldiFbank`); only the learned ResNet34 + masked pooling is CoreML.
+///
+/// The fbank of a 16 s chunk is the SAME for every speaker in that chunk (only the
+/// mask differs), so it is split out: compute it once per chunk with `fbank(region:)`,
+/// then call `embed(fbank:weights:)` per speaker. `embed(region:weights:)` is a
+/// convenience that does both.
 public protocol EmbeddingModel {
-    /// `region`: mono 16 kHz samples of the embedding window (16 s crop).
-    /// `weights`: per-frame activity at segmentation resolution (799), or nil = all active.
-    func embed(region: [Float], weights: [Float]?) throws -> [Float]
+    /// Kaldi log-mel features for a chunk (mono 16 kHz, padded to the 16 s window).
+    func fbank(region: [Float]) -> [[Float]]
+    /// 256-d embedding for one speaker: chunk `fbank` + per-frame `weights` mask
+    /// (segmentation resolution, or nil = all active).
+    func embed(fbank: [[Float]], weights: [Float]?) throws -> [Float]
+}
+
+public extension EmbeddingModel {
+    /// Convenience: compute the fbank and embed one region in one call.
+    func embed(region: [Float], weights: [Float]?) throws -> [Float] {
+        try embed(fbank: fbank(region: region), weights: weights)
+    }
 }
 
 /// CoreML-backed embeddings: Swift fbank → CoreML ResNet34. Feature names + shapes
 /// mirror `conversion/export_embedding_coreml.py`.
 public struct CoreMLEmbedding: EmbeddingModel {
-    /// Fixed CoreML input geometry.
     public static let cropSamples = 256_000  // 16 s window
     public static let segFrames = 799        // weights resolution (segmentation frames)
     static let inputFbank = "fbank"
@@ -21,15 +33,15 @@ public struct CoreMLEmbedding: EmbeddingModel {
     static let outputName = "embedding"
 
     let backend: CoreMLBackend
-    let fbank: KaldiFbank
+    let fbankFrontend: KaldiFbank
 
     public init(backend: CoreMLBackend, fbank: KaldiFbank = KaldiFbank()) {
         self.backend = backend
-        self.fbank = fbank
+        self.fbankFrontend = fbank
     }
 
-    public func embed(region: [Float], weights: [Float]?) throws -> [Float] {
-        // Pad/truncate to the fixed 16 s crop so the fbank frame count matches the model.
+    public func fbank(region: [Float]) -> [[Float]] {
+        // Pad/truncate to the fixed 16 s crop so the frame count matches the model.
         var window = region
         if window.count != Self.cropSamples {
             window = Array(window.prefix(Self.cropSamples))
@@ -37,10 +49,12 @@ public struct CoreMLEmbedding: EmbeddingModel {
                 window.append(contentsOf: repeatElement(0, count: Self.cropSamples - window.count))
             }
         }
+        return fbankFrontend.compute(window)
+    }
 
-        let mels = fbank.compute(window)          // [F][80]
+    public func embed(fbank mels: [[Float]], weights: [Float]?) throws -> [Float] {
         let numFrames = mels.count
-        let numMel = mels.first?.count ?? fbank.numMelBins
+        let numMel = mels.first?.count ?? fbankFrontend.numMelBins
 
         let fbankArray = try MLMultiArray(
             shape: [1, NSNumber(value: numFrames), NSNumber(value: numMel)], dataType: .float32)
@@ -54,8 +68,7 @@ public struct CoreMLEmbedding: EmbeddingModel {
         }
 
         let w = weights ?? [Float](repeating: 1, count: Self.segFrames)
-        let weightsArray = try MLMultiArray(
-            shape: [1, NSNumber(value: w.count)], dataType: .float32)
+        let weightsArray = try MLMultiArray(shape: [1, NSNumber(value: w.count)], dataType: .float32)
         weightsArray.withUnsafeMutableBytes { raw, _ in
             let dst = raw.bindMemory(to: Float32.self)
             for i in 0..<w.count { dst[i] = w[i] }
