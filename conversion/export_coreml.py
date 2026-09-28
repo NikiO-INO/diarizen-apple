@@ -38,7 +38,8 @@ def main() -> None:
     mods = extract_modules(pipe)
 
     seg = mods.segmentation.eval()
-    example = torch.zeros(1, mods.seg_window_samples, dtype=torch.float32)
+    # 3-D input (batch, channel, sample) per DiariZen's forward.
+    example = torch.zeros(1, mods.export_channels, mods.seg_window_samples, dtype=torch.float32)
 
     # Trace, then convert to an ML Program. Prefer FIXED shapes (fastest, most
     # ANE-friendly); use ct.EnumeratedShapes only if a few chunk sizes are needed;

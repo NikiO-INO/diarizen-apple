@@ -35,9 +35,9 @@ def main() -> None:
     mods = extract_modules(pipe)
 
     seg = mods.segmentation.eval()
-    # A single segmentation chunk: [batch=1, samples]. Confirm the real forward
-    # signature in Phase 0 (some models take [1, 1, samples] or features).
-    dummy = torch.zeros(1, mods.seg_window_samples, dtype=torch.float32)
+    # DiariZen's segmentation forward asserts a 3-D input (batch, channel, sample)
+    # and selects one channel internally; output is (batch, frame, classes).
+    dummy = torch.zeros(1, mods.export_channels, mods.seg_window_samples, dtype=torch.float32)
 
     seg_path = os.path.join(args.out, "segmentation.onnx")
     torch.onnx.export(

@@ -36,7 +36,7 @@ def main() -> int:
     mods = extract_modules(load_pipeline(args.model))
     audio = load_fixture_audio(args.fixture, mods.sample_rate)
     win = audio[: mods.seg_window_samples]
-    x = torch.from_numpy(win).unsqueeze(0)
+    x = torch.from_numpy(win).reshape(1, 1, -1)
 
     with torch.no_grad():
         ref = mods.segmentation.eval()(x).cpu().numpy()
