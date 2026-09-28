@@ -15,6 +15,19 @@ final class PowersetTests: XCTestCase {
     func testCombinations() {
         XCTAssertEqual(Powerset.combinations(4, 0), [[]])
         XCTAssertEqual(Powerset.combinations(4, 2), [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]])
+        XCTAssertEqual(Powerset.combinations(4, 3), [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]])
+        XCTAssertEqual(Powerset.combinations(4, 4), [[0, 1, 2, 3]])
+    }
+
+    func testInferMaxSetFromClassCount() {
+        // base: 11 classes → max 2; large-s80-md-v2: 16 → max 4 (all four can co-occur).
+        let base = Powerset(numSpeakers: 4, numPowersetClasses: 11)
+        XCTAssertEqual(base.maxSetSize, 2)
+        XCTAssertEqual(base.mapping.count, 11)
+        let large = Powerset(numSpeakers: 4, numPowersetClasses: 16)
+        XCTAssertEqual(large.maxSetSize, 4)
+        XCTAssertEqual(large.mapping.count, 16)
+        XCTAssertEqual(large.mapping[15], [1, 1, 1, 1])  // all four speakers active
     }
 
     func testToMultilabelArgmax() {

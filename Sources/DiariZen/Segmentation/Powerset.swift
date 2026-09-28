@@ -73,15 +73,21 @@ public struct Powerset {
         if k == 0 { return [[]] }
         if k > n { return [] }
         var result = [[Int]]()
-        var idx = Array(0..<k)
-        while true {
-            result.append(idx)
-            var i = k - 1
-            while i >= 0 && idx[i] == n - k + i { i -= 1 }
-            if i < 0 { break }
-            idx[i] += 1
-            for j in (i + 1)..<k { idx[j] = idx[j - 1] + 1 }
+        var current = [Int]()
+        current.reserveCapacity(k)
+        func choose(_ start: Int) {
+            if current.count == k { result.append(current); return }
+            // enough remaining elements to still fill k
+            let last = n - (k - current.count)
+            var v = start
+            while v <= last {
+                current.append(v)
+                choose(v + 1)
+                current.removeLast()
+                v += 1
+            }
         }
+        choose(0)
         return result
     }
 }
