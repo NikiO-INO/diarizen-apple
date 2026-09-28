@@ -59,6 +59,7 @@ var dumpSegPath: String?
 var dumpFbankPath: String?
 var dumpEmbPath: String?
 var dumpFeaturesPath: String?
+var debugClusterPath: String?
 var weightsRawPath: String?
 var rawInputPath: String?
 var policy: CoreMLBackend.ComputePolicy = .cpuAndGPU
@@ -74,6 +75,7 @@ while i < args.count {
     case "--dump-fbank": i += 1; dumpFbankPath = args[safe: i]
     case "--dump-embedding": i += 1; dumpEmbPath = args[safe: i]
     case "--dump-features": i += 1; dumpFeaturesPath = args[safe: i]
+    case "--debug-cluster": i += 1; debugClusterPath = args[safe: i]
     case "--weights-raw": i += 1; weightsRawPath = args[safe: i]
     case "--raw-input": i += 1; rawInputPath = args[safe: i]
     case "--compute-units":
@@ -89,6 +91,26 @@ while i < args.count {
         if !a.hasPrefix("--"), audioPath == nil { audioPath = a }
     }
     i += 1
+}
+
+// Phase 3 parity mode: PLDA transform + VBx on injected embeddings (no audio/model).
+if let debugClusterPath {
+    struct In: Decodable { let train_emb: [[Float]]; let ahc: [Int]; let Fa: Double; let Fb: Double; let maxIters: Int }
+    struct Out: Encodable { let fea: [[Double]]; let gamma: [[Double]]; let pi: [Double] }
+    guard let modelsDir else { usage() }
+    do {
+        let input = try JSONDecoder().decode(In.self, from: Data(contentsOf: URL(fileURLWithPath: debugClusterPath)))
+        let plda = try PLDA(contentsOf: URL(fileURLWithPath: modelsDir).appendingPathComponent("plda_transform.json"))
+        let fea = plda.transform(input.train_emb)
+        let (gamma, pi) = VBx.cluster(ahcInit: input.ahc, fea: fea, phi: plda.phi,
+                                      Fa: input.Fa, Fb: input.Fb, maxIters: input.maxIters)
+        let outURL = URL(fileURLWithPath: outputPath ?? "cluster_debug.json")
+        try JSONEncoder().encode(Out(fea: fea, gamma: gamma, pi: pi)).write(to: outURL)
+        FileHandle.standardError.write(Data("wrote cluster debug → \(outURL.path)\n".utf8))
+        exit(0)
+    } catch {
+        FileHandle.standardError.write(Data("error: \(error)\n".utf8)); exit(1)
+    }
 }
 
 guard audioPath != nil || rawInputPath != nil else { usage() }
