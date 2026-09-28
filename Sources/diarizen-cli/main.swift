@@ -58,6 +58,7 @@ var outputPath: String?
 var dumpSegPath: String?
 var dumpFbankPath: String?
 var dumpEmbPath: String?
+var dumpFeaturesPath: String?
 var weightsRawPath: String?
 var rawInputPath: String?
 var policy: CoreMLBackend.ComputePolicy = .cpuAndGPU
@@ -72,6 +73,7 @@ while i < args.count {
     case "--dump-segmentation": i += 1; dumpSegPath = args[safe: i]
     case "--dump-fbank": i += 1; dumpFbankPath = args[safe: i]
     case "--dump-embedding": i += 1; dumpEmbPath = args[safe: i]
+    case "--dump-features": i += 1; dumpFeaturesPath = args[safe: i]
     case "--weights-raw": i += 1; weightsRawPath = args[safe: i]
     case "--raw-input": i += 1; rawInputPath = args[safe: i]
     case "--compute-units":
@@ -151,6 +153,20 @@ do {
         segmentation: segmentation,
         embeddings: CoreMLEmbedding(backend: try CoreMLBackend(modelURL: embURL, policy: policy))
     )
+
+    // Phase 2 parity mode: dump the pre-clustering features (binarized + embeddings).
+    if let dumpFeaturesPath {
+        let feats = try pipeline.extractFeatures(waveform: waveform, sampleRate: 16_000)
+        struct Features: Encodable { let binarized: [[[Float]]]; let embeddings: [[[Float]]] }
+        let data = try JSONEncoder().encode(Features(binarized: feats.binarized, embeddings: feats.embeddings))
+        try data.write(to: URL(fileURLWithPath: dumpFeaturesPath))
+        let bShape = "\(feats.binarized.count)×\(feats.binarized.first?.count ?? 0)×\(feats.binarized.first?.first?.count ?? 0)"
+        let eShape = "\(feats.embeddings.count)×\(feats.embeddings.first?.count ?? 0)"
+        let msg = "dumped features: binarized \(bShape), embeddings \(eShape) → \(dumpFeaturesPath)\n"
+        FileHandle.standardError.write(Data(msg.utf8))
+        exit(0)
+    }
+
     let turns = try pipeline.diarize(waveform: waveform, sampleRate: 16_000)
     let fileId = audioPath.map { URL(fileURLWithPath: $0).deletingPathExtension().lastPathComponent } ?? "audio"
     let rttm = RTTM.serialize(turns, fileId: fileId)

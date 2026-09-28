@@ -28,7 +28,7 @@ wrappers once the pipeline is proven.
       `validation/fixtures/EN2002a.golden.rttm` for the Swift port to diff against.
 - **Gate:** ✅ segmentation parity; ✅ full-pipeline RTTM reproduction.
 
-## Phase 2 — Native CoreML production backend  🟢 segmentation + embedding stages run from Swift
+## Phase 2 — Native CoreML production backend  ✅ neural stages + aggregation done (clustering → Phase 3)
 - [x] `conversion/export_coreml.py`: convert **directly PyTorch → CoreML**
       (`ct.convert(..., convert_to="mlprogram")`), FP16, static single-chunk shape.
       Needed two export-only patches (`conversion/patches/wavlm_export_patch.py`):
@@ -65,11 +65,21 @@ wrappers once the pipeline is proven.
         (2) CoreML ResNet ≈ PyTorch cosine=0.99991; (3) end-to-end Swift-fbank+CoreML ≈
         kaldi+PyTorch cosine=0.99991. Scripts: `compare_swift_fbank.py`,
         `compare_pytorch_embedding.py`, `compare_pytorch_swift_embedding.py`.
-- [ ] `Pipeline.swift` wires segmentation → aggregation (sliding-window overlap-add +
-      powerset) → embeddings → clustering. Aggregation is Swift; clustering is Phase 3.
-- **Gate:** ✅ segmentation converts + runs from Swift bit-identically to Python;
-  ✅ embedding stage (Swift fbank + CoreML ResNet, 3-level parity);
-  ⬜ full Swift pipeline reproduces the upstream RTTM end-to-end; ⬜ ANE path fixed.
+- [x] **Aggregation** — `Pipeline.swift extractFeatures` reproduces pyannote's
+      get_segmentations + get_embeddings up to clustering:
+      - sliding window (16 s / 1.6 s step, unfold + zero-padded last chunk),
+      - `Powerset.swift` decode (799×11 log-probs → argmax → 799×4 multi-label),
+      - median filter (1,11,1) + half-sample-symmetric reflect,
+      - per-(chunk,speaker) embeddings with exclude-overlap masking (clean-frame
+        gate + min-frames fallback).
+      Validated against a CoreML-segmentation oracle (same seg as Swift, isolating
+      the aggregation logic): **binarized cell-agreement 100.000%**, **embeddings
+      mean_cos 0.99991 / min 0.99980**. `dump_pipeline_oracle.py --segmentation coreml`
+      + `compare_swift_features.py`; unit tests cover powerset/median/reflect.
+- [ ] Clustering + reconstruction → RTTM (Phase 3) to close the full end-to-end gate.
+- **Gate:** ✅ segmentation + embedding stages run from Swift and match Python;
+  ✅ Swift aggregation reproduces pyannote's pre-clustering features exactly;
+  ⬜ full Swift RTTM (needs Phase 3 clustering); ⬜ ANE path fixed.
 
 ## Phase 3 — Clustering & post-processing in Swift
 - [ ] Port VBx / AHC + powerset decoding + overlap handling to Swift/CPU (or reuse
