@@ -131,6 +131,11 @@ public final class DiarizationPipeline {
         binarized.reserveCapacity(starts.count)
         windows.reserveCapacity(starts.count)
 
+        // Powerset decoder is built from the model's actual class count on the first
+        // chunk, so base (11 classes) and large-s80-md-v2 (16) both just work.
+        var decoder = powerset
+        var decoderReady = false
+
         timings.segmentation = 0
         for s in starts {
             var window = [Float](repeating: 0, count: windowSamples)
@@ -139,9 +144,14 @@ public final class DiarizationPipeline {
             windows.append(window)
 
             let tSeg = Date()
-            let seg = try segmentation.segment(chunk: window)      // [799][11] log-probs
+            let seg = try segmentation.segment(chunk: window)      // [frames][powerset classes]
             timings.segmentation += Date().timeIntervalSince(tSeg)
-            var multilabel = powerset.toMultilabel(seg.frames)     // [799][numSpeakers] 0/1
+            if !decoderReady {
+                decoder = Powerset(numSpeakers: powerset.numSpeakers,
+                                   numPowersetClasses: seg.frames.first?.count ?? powerset.numPowersetClasses)
+                decoderReady = true
+            }
+            var multilabel = decoder.toMultilabel(seg.frames)      // [frames][numSpeakers] 0/1
             Self.medianFilterFrames(&multilabel, window: Self.medianWindow)
             binarized.append(multilabel)
         }

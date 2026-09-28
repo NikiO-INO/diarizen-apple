@@ -21,6 +21,28 @@ public struct Powerset {
         self.numPowersetClasses = m.count
     }
 
+    /// Infer `maxSetSize` from the segmentation head's class count, so the same code
+    /// serves base (11 classes → max 2) and large-s80-md-v2 (16 classes → max 4).
+    /// DiariZen models use 4 local speakers; `numPowersetClasses = Σ_{k≤maxSetSize} C(4,k)`.
+    public init(numSpeakers: Int = 4, numPowersetClasses: Int) {
+        var acc = 0
+        var maxSet = numSpeakers
+        for k in 0...numSpeakers {
+            acc += Self.binomial(numSpeakers, k)
+            if acc == numPowersetClasses { maxSet = k; break }
+        }
+        self.init(numSpeakers: numSpeakers, maxSetSize: maxSet)
+        precondition(self.numPowersetClasses == numPowersetClasses,
+                     "no maxSetSize for \(numSpeakers) speakers gives \(numPowersetClasses) powerset classes")
+    }
+
+    static func binomial(_ n: Int, _ k: Int) -> Int {
+        if k < 0 || k > n { return 0 }
+        var r = 1
+        for i in 0..<min(k, n - k) { r = r * (n - i) / (i + 1) }
+        return r
+    }
+
     /// Hard-decode powerset log-probs `[frames][numPowersetClasses]` to multi-label
     /// speaker activity `[frames][numSpeakers]` (0/1), matching `to_multilabel(soft=False)`.
     public func toMultilabel(_ powerset: [[Float]]) -> [[Float]] {

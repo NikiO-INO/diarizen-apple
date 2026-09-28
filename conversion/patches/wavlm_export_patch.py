@@ -19,13 +19,20 @@ from __future__ import annotations
 
 def apply(model) -> None:
     """Patch every Wav2Vec2Model instance/class reachable from `model`."""
-    import torch.nn.functional as F
+    import torch
 
     from diarizen.models.module.wav2vec2.model import Wav2Vec2Model
 
     def extract_features(self, waveforms, lengths=None, num_layers=None):
         if self.normalize_waveform:
-            waveforms = F.layer_norm(waveforms, waveforms.shape[-1:])
+            # Equivalent to F.layer_norm(waveforms, waveforms.shape[-1:]) — a weightless
+            # layer-norm over the 256000-sample axis — but written as explicit reduce ops.
+            # coremltools mis-converts layer_norm over such a long axis (large-s80-md-v2
+            # has normalize_waveform=True and diverged ~29% argmax; base has it False).
+            # Biased variance + eps=1e-5 match F.layer_norm exactly.
+            mean = waveforms.mean(dim=-1, keepdim=True)
+            var = waveforms.var(dim=-1, unbiased=False, keepdim=True)
+            waveforms = (waveforms - mean) / torch.sqrt(var + 1e-5)
         x, lengths = self.feature_extractor(waveforms, lengths)
         # GradMultiply is a gradient-scaling identity — forward returns a copy of
         # x and only scales gradients in backward. At inference it is a no-op, and
