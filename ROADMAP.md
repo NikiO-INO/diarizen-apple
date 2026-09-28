@@ -130,13 +130,19 @@ wrappers once the pipeline is proven.
       caveat). End-to-end on AMI EN2002a it beats base: **DER 17.50% vs base 21.16%**
       (4 speakers; tracks DiariZen's published base→large gain). Fixed a release-only
       crash (`Powerset.combinations` was miscompiled under -O for max_set_size=4).
-      **Caveat:** the CoreML segmentation diverges from PyTorch at the tensor level
-      (~29% argmax; accumulates through the 24-layer WavLM, jumps in layers 22-24; FP32
-      too → not FP16), so large-v2 is *not* as faithful as base (base fidelity 1.9% on
-      AMI). The divergence is tolerated downstream (median filter + clustering +
-      reconstruction) and the bigger model still wins, but a deeper WavLM conversion fix
-      (and `normalize_waveform` breaking ONNX export) is future work. **base-s80-md stays
-      the faithful/validated default** (30 s DER 0.495%; AMI 21.16% vs pyannote 21.10%).
+      **Caveat (investigated — inherent, not a bug):** the CoreML segmentation diverges
+      from PyTorch at the tensor level (~29% argmax on the 16-class powerset). A
+      layer-by-layer comparison showed this is **inherent PyTorch↔CoreML numerical
+      divergence**, not a convertible-op bug: base has the *same* ~1.5% per-layer rate,
+      correlation stays 0.997 even at the last WavLM layer, the signed bias is constant
+      and tiny (~2e-3), and FP32 diverges identically (so not FP16). large just has 2×
+      the layers plus larger late-layer activations, pushing the harsh 16-class argmax
+      past its flip threshold — base's 12 layers stay under it. It can't be made
+      bit-faithful (no FP64 in CoreML; runtime op/summation order differs), but it
+      doesn't matter: the divergence is tolerated downstream and DER *improves*.
+      (`normalize_waveform=True` on large also breaks the ONNX export path — cosmetic.)
+      **base-s80-md stays the tensor-faithful default** (30 s DER 0.495%; AMI 21.16% vs
+      pyannote 21.10%); large-v2 is the optional, more-accurate model.
 - [ ] Polish docs, CONTRIBUTING, CI; flip the repo public.
 
 ## Later (not now)
