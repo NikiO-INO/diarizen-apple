@@ -28,7 +28,7 @@ wrappers once the pipeline is proven.
       `validation/fixtures/EN2002a.golden.rttm` for the Swift port to diff against.
 - **Gate:** ✅ segmentation parity; ✅ full-pipeline RTTM reproduction.
 
-## Phase 2 — Native CoreML production backend  🟢 segmentation converted + runs from Swift
+## Phase 2 — Native CoreML production backend  🟢 segmentation + embedding stages run from Swift
 - [x] `conversion/export_coreml.py`: convert **directly PyTorch → CoreML**
       (`ct.convert(..., convert_to="mlprogram")`), FP16, static single-chunk shape.
       Needed two export-only patches (`conversion/patches/wavlm_export_patch.py`):
@@ -54,13 +54,22 @@ wrappers once the pipeline is proven.
       (`validation/compare_swift_coreml.py`: raw max_abs=0.0, argmax_agree=100% on the
       same raw input, CPU). Transitively PyTorch ≈ Swift-CoreML. `diarizen-cli` gains
       `--dump-segmentation`/`--raw-input` for this parity; unit tests cover the decode.
-- [ ] Export the WeSpeaker embedding to CoreML (Python side: loader `embedding=None`
-      today) and implement `CoreMLEmbedding.embed`.
+- [x] **Embedding stage** — kaldi fbank in Swift, ResNet34 in CoreML (decided split):
+      - `export_embedding_coreml.py` converts `forward(fbank(1,1598,80), weights(1,799))
+        → embedding(1,256)`; export patch `wespeaker_export_patch.py` swaps StatsPool's
+        `torch.vmap` (un-traceable, emits `movedim`) for the single-speaker equivalent.
+      - `KaldiFbank.swift` (Accelerate/vDSP): 80-mel/25/10 ms Hamming, preemph 0.97, DC
+        removal, power spectrum, log, per-mel CMVN — DiariZen owns the frontend.
+      - `CoreMLEmbedding.embed` = Swift fbank → CoreML ResNet.
+      - **3-level parity (tolerance/cosine):** (1) Swift fbank ≈ kaldi max_abs=1.9e-4;
+        (2) CoreML ResNet ≈ PyTorch cosine=0.99991; (3) end-to-end Swift-fbank+CoreML ≈
+        kaldi+PyTorch cosine=0.99991. Scripts: `compare_swift_fbank.py`,
+        `compare_pytorch_embedding.py`, `compare_pytorch_swift_embedding.py`.
 - [ ] `Pipeline.swift` wires segmentation → aggregation (sliding-window overlap-add +
       powerset) → embeddings → clustering. Aggregation is Swift; clustering is Phase 3.
 - **Gate:** ✅ segmentation converts + runs from Swift bit-identically to Python;
-  ⬜ embedding stage; ⬜ full Swift pipeline reproduces the upstream RTTM end-to-end;
-  ⬜ ANE path fixed.
+  ✅ embedding stage (Swift fbank + CoreML ResNet, 3-level parity);
+  ⬜ full Swift pipeline reproduces the upstream RTTM end-to-end; ⬜ ANE path fixed.
 
 ## Phase 3 — Clustering & post-processing in Swift
 - [ ] Port VBx / AHC + powerset decoding + overlap handling to Swift/CPU (or reuse

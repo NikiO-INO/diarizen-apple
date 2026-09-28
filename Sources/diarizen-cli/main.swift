@@ -24,6 +24,9 @@ func usage() -> Never {
           --dump-segmentation <f>   Run segmentation on the first 16 s window, write
                                     the [frames][classes] log-probs as JSON, and exit
                                     (Phase 2 parity against the Python backend)
+          --dump-fbank <f>          Compute the Kaldi fbank of the first 16 s window,
+                                    write [frames][mels] as JSON, and exit (no model
+                                    needed; parity against torchaudio kaldi.fbank)
           --raw-input <f>           Read the window as little-endian Float32 samples
                                     from <f> instead of decoding <audio> (isolates
                                     inference from the audio loader for parity)
@@ -53,6 +56,9 @@ var audioPath: String?
 var modelsDir: String?
 var outputPath: String?
 var dumpSegPath: String?
+var dumpFbankPath: String?
+var dumpEmbPath: String?
+var weightsRawPath: String?
 var rawInputPath: String?
 var policy: CoreMLBackend.ComputePolicy = .cpuAndGPU
 
@@ -64,6 +70,9 @@ while i < args.count {
     case "--models": i += 1; modelsDir = args[safe: i]
     case "--output": i += 1; outputPath = args[safe: i]
     case "--dump-segmentation": i += 1; dumpSegPath = args[safe: i]
+    case "--dump-fbank": i += 1; dumpFbankPath = args[safe: i]
+    case "--dump-embedding": i += 1; dumpEmbPath = args[safe: i]
+    case "--weights-raw": i += 1; weightsRawPath = args[safe: i]
     case "--raw-input": i += 1; rawInputPath = args[safe: i]
     case "--compute-units":
         i += 1
@@ -80,7 +89,7 @@ while i < args.count {
     i += 1
 }
 
-guard let modelsDir, audioPath != nil || rawInputPath != nil else { usage() }
+guard audioPath != nil || rawInputPath != nil else { usage() }
 
 do {
     let waveform: [Float]
@@ -88,6 +97,32 @@ do {
         waveform = try readRawFloat32(rawInputPath)
     } else {
         waveform = try AudioLoader.loadMono(url: URL(fileURLWithPath: audioPath!))
+    }
+
+    // Fbank parity dump needs no model.
+    if let dumpFbankPath {
+        let window = Array(waveform.prefix(CoreMLSegmentation.windowSamples))
+        let fbank = KaldiFbank().compute(window)
+        try JSONEncoder().encode(fbank).write(to: URL(fileURLWithPath: dumpFbankPath))
+        FileHandle.standardError.write(Data(
+            "dumped fbank \(fbank.count)×\(fbank.first?.count ?? 0) → \(dumpFbankPath)\n".utf8))
+        exit(0)
+    }
+
+    guard let modelsDir else { usage() }
+
+    // Embedding parity dump: Swift fbank → CoreML ResNet on the first 16 s window.
+    if let dumpEmbPath {
+        guard let embURL = resolveModel(dir: modelsDir, base: "Embedding") else {
+            throw DiariZenError.modelLoad("Embedding.mlpackage/.mlmodelc not found in \(modelsDir)")
+        }
+        let embedder = CoreMLEmbedding(backend: try CoreMLBackend(modelURL: embURL, policy: policy))
+        let window = Array(waveform.prefix(CoreMLEmbedding.cropSamples))
+        let weights = try weightsRawPath.map(readRawFloat32)
+        let vec = try embedder.embed(region: window, weights: weights)
+        try JSONEncoder().encode(vec).write(to: URL(fileURLWithPath: dumpEmbPath))
+        FileHandle.standardError.write(Data("dumped embedding dim=\(vec.count) → \(dumpEmbPath)\n".utf8))
+        exit(0)
     }
 
     guard let segURL = resolveModel(dir: modelsDir, base: "Segmentation") else {
