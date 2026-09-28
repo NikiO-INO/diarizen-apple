@@ -12,7 +12,26 @@ Native Apple-Silicon DiariZen vs the upstream PyTorch pipeline.
   RTTM at **DER 0.495%** on this fixture (`validation/compare_swift_rttm.py`). RTF is
   not traded against accuracy.
 
-## Results
+## Accuracy on a full meeting (real ground truth)
+
+Beyond the 30 s parity clip, validated on the **full AMI EN2002a** (35.7 min, SDM,
+4 speakers) against the human reference (`pyannote/AMI-diarization-setup`), via
+`validation/eval_ami.py` + `pyannote.metrics`:
+
+| | DER vs reference |
+|---|---:|
+| **Swift port** | **21.16%** |
+| DiariZen (PyTorch) | 21.10% |
+| Swift vs DiariZen (fidelity) | **1.90%** |
+
+The port reproduces DiariZen's accuracy on a real long meeting (0.06 pt from the
+PyTorch pipeline vs the reference; 1.90% DER between the two outputs). ~21% is this
+single hard meeting's difficulty — DiariZen's published **15.8%** is the AMI-SDM
+*corpus average*, and PyTorch scores the same ~21% here. The 35-min file exercised
+**N = 2238** clustering embeddings (which forced the O(n²) AHC — see the perf commit).
+Runtime: Swift **288 s** vs PyTorch-CPU **3042 s** (~10×).
+
+## Results (speed)
 
 | Backend | seg | embed | cluster | recon | **total** | **RTF** | **peak RSS** |
 |---|---:|---:|---:|---:|---:|---:|---:|
