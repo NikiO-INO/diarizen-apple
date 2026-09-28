@@ -14,12 +14,19 @@ public protocol EmbeddingModel {
     /// 256-d embedding for one speaker: chunk `fbank` + per-frame `weights` mask
     /// (segmentation resolution, or nil = all active).
     func embed(fbank: [[Float]], weights: [Float]?) throws -> [Float]
+    /// Batched embed: `fbanks[i]` + `weights[i]` → `result[i]`. One CoreML call for
+    /// the whole batch (amortizes per-call overhead; embedding dominates runtime).
+    func embed(fbanks: [[[Float]]], weights: [[Float]]) throws -> [[Float]]
 }
 
 public extension EmbeddingModel {
     /// Convenience: compute the fbank and embed one region in one call.
     func embed(region: [Float], weights: [Float]?) throws -> [Float] {
         try embed(fbank: fbank(region: region), weights: weights)
+    }
+    /// Fallback batched embed (per-item loop) for non-batching implementations.
+    func embed(fbanks: [[[Float]]], weights: [[Float]]) throws -> [[Float]] {
+        try zip(fbanks, weights).map { try embed(fbank: $0.0, weights: $0.1) }
     }
 }
 
@@ -88,5 +95,57 @@ public struct CoreMLEmbedding: EmbeddingModel {
             throw DiariZenError.inference("embedding output '\(Self.outputName)' missing")
         }
         return (0..<arr.count).map { arr[$0].floatValue }
+    }
+
+    public func embed(fbanks: [[[Float]]], weights: [[Float]]) throws -> [[Float]] {
+        let b = fbanks.count
+        guard b > 0 else { return [] }
+        let numFrames = fbanks[0].count
+        let numMel = fbanks[0].first?.count ?? fbankFrontend.numMelBins
+        let wLen = weights.first?.count ?? Self.segFrames
+
+        let fbankArray = try MLMultiArray(
+            shape: [NSNumber(value: b), NSNumber(value: numFrames), NSNumber(value: numMel)],
+            dataType: .float32)
+        fbankArray.withUnsafeMutableBytes { raw, _ in
+            let dst = raw.bindMemory(to: Float32.self)
+            var idx = 0
+            for i in 0..<b {
+                let mels = fbanks[i]
+                for f in 0..<numFrames { let row = mels[f]; for m in 0..<numMel { dst[idx] = row[m]; idx += 1 } }
+            }
+        }
+        let weightsArray = try MLMultiArray(
+            shape: [NSNumber(value: b), NSNumber(value: wLen)], dataType: .float32)
+        weightsArray.withUnsafeMutableBytes { raw, _ in
+            let dst = raw.bindMemory(to: Float32.self)
+            var idx = 0
+            for i in 0..<b { let wr = weights[i]; for k in 0..<wLen { dst[idx] = wr[k]; idx += 1 } }
+        }
+
+        let provider = try MLDictionaryFeatureProvider(dictionary: [
+            Self.inputFbank: MLFeatureValue(multiArray: fbankArray),
+            Self.inputWeights: MLFeatureValue(multiArray: weightsArray),
+        ])
+        let out: MLFeatureProvider
+        do {
+            out = try backend.model.prediction(from: provider)
+        } catch {
+            throw DiariZenError.inference("embedding batch predict: \(error)")
+        }
+        guard let arr = out.featureValue(for: Self.outputName)?.multiArrayValue else {
+            throw DiariZenError.inference("embedding output '\(Self.outputName)' missing")
+        }
+        let dim = arr.shape[1].intValue
+        var result = [[Float]](repeating: [Float](repeating: 0, count: dim), count: b)
+        if arr.dataType == .float32 {
+            arr.withUnsafeBytes { raw in
+                let src = raw.bindMemory(to: Float32.self)
+                for i in 0..<b { let base = i * dim; for k in 0..<dim { result[i][k] = src[base + k] } }
+            }
+        } else {
+            for i in 0..<b { let base = i * dim; for k in 0..<dim { result[i][k] = arr[base + k].floatValue } }
+        }
+        return result
     }
 }

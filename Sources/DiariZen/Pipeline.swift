@@ -62,6 +62,7 @@ public final class DiarizationPipeline {
     static let stepSeconds = 1.6        // segmentation_step * seg_duration = 0.1 * 16
     static let medianWindow = 11        // median_filter size (1, 11, 1)
     static let minNumFrames = 2         // ceil(799 * min_num_samples/num_samples) for embeddings
+    static let embeddingBatchSize = 32  // CoreML embedding batch (flexible-shape model)
     // Segmentation receptive field (base-s80-md): 799 frames of 25 ms every 20 ms.
     static let frameResolution = FrameResolution(start: -0.00753125, duration: 0.025, step: 0.02)
 
@@ -161,8 +162,22 @@ public final class DiarizationPipeline {
     private func extractEmbeddings(
         binarized: [[[Float]]], windows: [[Float]], numSpeakers: Int
     ) throws -> [[[Float]]] {
-        var result = [[[Float]]]()
-        result.reserveCapacity(binarized.count)
+        // Preallocate; fill via a streaming batch of (chunk fbank, speaker mask) items.
+        var result = [[[Float]]](
+            repeating: [[Float]](repeating: [], count: numSpeakers), count: binarized.count)
+
+        var batchFbanks = [[[Float]]](); batchFbanks.reserveCapacity(Self.embeddingBatchSize)
+        var batchWeights = [[Float]](); batchWeights.reserveCapacity(Self.embeddingBatchSize)
+        var batchTarget = [(Int, Int)](); batchTarget.reserveCapacity(Self.embeddingBatchSize)
+
+        func flush() throws {
+            guard !batchFbanks.isEmpty else { return }
+            let embs = try embeddings.embed(fbanks: batchFbanks, weights: batchWeights)
+            for (i, target) in batchTarget.enumerated() { result[target.0][target.1] = embs[i] }
+            batchFbanks.removeAll(keepingCapacity: true)
+            batchWeights.removeAll(keepingCapacity: true)
+            batchTarget.removeAll(keepingCapacity: true)
+        }
 
         for (c, chunk) in binarized.enumerated() {
             let numFrames = chunk.count
@@ -177,8 +192,6 @@ public final class DiarizationPipeline {
                 clean[f] = active < 2
             }
 
-            var chunkEmb = [[Float]]()
-            chunkEmb.reserveCapacity(numSpeakers)
             for spk in 0..<numSpeakers {
                 var mask = [Float](repeating: 0, count: numFrames)
                 var cleanMask = [Float](repeating: 0, count: numFrames)
@@ -191,10 +204,11 @@ public final class DiarizationPipeline {
                     cleanSum += cv
                 }
                 let used = cleanSum > Float(Self.minNumFrames) ? cleanMask : mask
-                chunkEmb.append(try embeddings.embed(fbank: fb, weights: used))
+                batchFbanks.append(fb); batchWeights.append(used); batchTarget.append((c, spk))
+                if batchFbanks.count >= Self.embeddingBatchSize { try flush() }
             }
-            result.append(chunkEmb)
         }
+        try flush()
         return result
     }
 

@@ -34,6 +34,7 @@ def main() -> None:
     ap.add_argument("--model", default="BUT-FIT/diarizen-wavlm-base-s80-md")
     ap.add_argument("--out", default="build/coreml")
     ap.add_argument("--precision", choices=["fp16", "fp32"], default="fp16")
+    ap.add_argument("--max-batch", type=int, default=64, help="upper bound for the flexible batch dim")
     args = ap.parse_args()
 
     import coremltools as ct
@@ -74,13 +75,19 @@ def main() -> None:
     with torch.no_grad():
         traced = torch.jit.trace(net, (ex_fbank, ex_weights))
 
+    # Flexible batch: the ResNet ops (conv/pool/linear) are batch-polymorphic, so a
+    # batch=1 trace converts to a model that also runs batches. Batching amortizes
+    # CoreML per-call overhead and lets the GPU process many speaker-chunks at once
+    # (embedding is ~76% of pipeline time). batch=1 still works for parity checks.
+    batch = ct.RangeDim(lower_bound=1, upper_bound=args.max_batch, default=1)
+
     precision = ct.precision.FLOAT16 if args.precision == "fp16" else ct.precision.FLOAT32
     mlmodel = ct.convert(
         traced,
         convert_to="mlprogram",
         inputs=[
-            ct.TensorType(name="fbank", shape=ex_fbank.shape),
-            ct.TensorType(name="weights", shape=ex_weights.shape),
+            ct.TensorType(name="fbank", shape=(batch, n_frames, n_mel)),
+            ct.TensorType(name="weights", shape=(batch, SEG_FRAMES)),
         ],
         outputs=[ct.TensorType(name="embedding")],
         compute_precision=precision,

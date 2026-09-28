@@ -29,29 +29,41 @@ PyTorch pipeline vs the reference; 1.90% DER between the two outputs). ~21% is t
 single hard meeting's difficulty — DiariZen's published **15.8%** is the AMI-SDM
 *corpus average*, and PyTorch scores the same ~21% here. The 35-min file exercised
 **N = 2238** clustering embeddings (which forced the O(n²) AHC — see the perf commit).
-Runtime: Swift **288 s** vs PyTorch-CPU **3042 s** (~10×).
+Runtime: Swift **151 s** (RTF 0.071) vs PyTorch-CPU **3042 s** (~20×).
+
+## Perf notes
+
+- **Embedding batching.** The embedding ResNet is exported with a flexible batch dim
+  (`RangeDim`), and the pipeline runs speaker-chunks in batches of 32 (one CoreML call
+  per batch). This ~halved the embedding stage (35-min AMI: 220 s → 103 s; total 288 s
+  → 151 s) with **no accuracy change** (30-s DER stays 0.495%; AMI DER stays 21.16%).
+  The kaldi fbank is also computed once per chunk (shared across its speakers).
+- **AHC is O(n²)** (nearest-neighbor cache), not the naive O(n³) — exact centroid
+  linkage can't beat O(n²), and clustering is <3% of runtime anyway (4.4 s on the
+  N=2238 AMI file). Embedding dominates (~70%).
 
 ## Results (speed)
 
 | Backend | seg | embed | cluster | recon | **total** | **RTF** | **peak RSS** |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| native CoreML — **CPU+GPU** (default) | 0.326 | 1.307 | 0.001 | 0.002 | **1.64 s** | **0.055** | **226 MB** |
-| native CoreML — CPU only | 0.616 | 1.814 | 0.001 | 0.002 | 2.44 s | 0.081 | 256 MB |
-| native CoreML — CPU+ANE | 4.026 | 1.089 | 0.001 | 0.002 | 5.13 s | 0.171 | 1181 MB |
+| native CoreML — **CPU+GPU** (default) | 0.323 | 0.794 | 0.001 | 0.002 | **1.12 s** | **0.037** | **298 MB** |
+| native CoreML — CPU only | 0.656 | 1.047 | 0.001 | 0.002 | 1.71 s | 0.057 | 1050 MB |
+| native CoreML — CPU+ANE† | 4.026 | 1.089 | 0.001 | 0.002 | 5.13 s | 0.171 | 1181 MB |
 | PyTorch — MPS | — | — | — | — | 1.43 s | 0.048 | 1832 MB |
 | PyTorch — CPU (reference) | — | — | — | — | 18.04 s | 0.602 | 7474 MB |
 
-(stage columns are seconds; RTF = processing_time / 30 s, lower is faster.)
+(stage columns are seconds; RTF = processing_time / 30 s, lower is faster. Embedding
+predicts are batched — see the "batching" perf note. †ANE row predates batching; ANE
+isn't a recommended path — see below.)
 
 **Takeaways (honest):**
-- vs **PyTorch-CPU**: native CoreML+GPU is **~11× faster** (RTF 0.055 vs 0.602) and uses
-  **~33× less memory** (226 MB vs 7.3 GB).
-- vs **PyTorch-MPS**: raw speed is a **wash** — MPS is marginally faster (0.048 vs 0.055).
-  The native port's win is **memory (~8×: 226 MB vs 1832 MB)** and **deployability**: a
-  self-contained Swift binary + CoreML models, no Python / torch / pyannote runtime.
-  MPS also silently CPU-fallbacks some ops (`aten::_weight_norm_interface`).
-- So the pitch is "**runs natively on macOS, tiny footprint, no Python, competitive
-  speed**" — not "fastest in wall-clock".
+- vs **PyTorch-CPU**: native CoreML+GPU is **~16× faster** (RTF 0.037 vs 0.602) and uses
+  **~25× less memory** (298 MB vs 7.3 GB).
+- vs **PyTorch-MPS**: native CoreML+GPU is now **faster** (0.037 vs 0.048) **and ~6× lighter**
+  (298 MB vs 1832 MB) — and Python-free (a self-contained Swift binary + CoreML models,
+  no torch/pyannote runtime). MPS also silently CPU-fallbacks some ops
+  (`aten::_weight_norm_interface`).
+- Pitch: **runs natively on macOS, fastest measured here, tiny footprint, no Python.**
 
 ## Notes / honest caveats
 
