@@ -38,6 +38,13 @@ def main() -> None:
     mods = extract_modules(pipe)
 
     seg = mods.segmentation.eval()
+
+    # WavLM's @torch.jit.export'd variable-length path is un-scriptable; neutralize
+    # it before tracing (see conversion/patches/wavlm_export_patch.py). No-op for
+    # our fixed single-chunk input; parity tests confirm outputs are unchanged.
+    from patches.wavlm_export_patch import apply as apply_wavlm_patch
+    apply_wavlm_patch(seg)
+
     # 3-D input (batch, channel, sample) per DiariZen's forward.
     example = torch.zeros(1, mods.export_channels, mods.seg_window_samples, dtype=torch.float32)
 

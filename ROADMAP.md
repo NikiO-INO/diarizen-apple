@@ -25,17 +25,29 @@ wrappers once the pipeline is proven.
       reproduce the upstream RTTM end-to-end.
 - **Gate:** ✅ segmentation parity; ⬜ full-pipeline RTTM reproduction.
 
-## Phase 2 — Native CoreML production backend
-- [ ] `conversion/export_coreml.py`: convert **directly PyTorch → CoreML**
-      (`coremltools`, `ct.convert(..., convert_to="mlprogram")`), FP16 where safe,
-      fixed or enumerated input shapes. No ONNX in this path.
-- [ ] `validation/compare_pytorch_coreml.py`: assert `PyTorch ≈ CoreML` within
-      tolerance (CoreML FP16 will need looser tol than ONNX FP32 — document it).
+## Phase 2 — Native CoreML production backend  🟢 segmentation converted + validated
+- [x] `conversion/export_coreml.py`: convert **directly PyTorch → CoreML**
+      (`ct.convert(..., convert_to="mlprogram")`), FP16, static single-chunk shape.
+      Needed two export-only patches (`conversion/patches/wavlm_export_patch.py`):
+      neutralize WavLM's `@torch.jit.export` variable-length `layer_norm` (un-scriptable)
+      and drop `GradMultiply` (a `torch.autograd.Function` → un-convertible `pythonop`,
+      identity at inference). Both are no-ops for our fixed mono chunk.
+- [x] `validation/compare_pytorch_coreml.py`: **PyTorch ≈ CoreML PASS** —
+      prob_max=2.1e-2, prob_mean=7.8e-4, **argmax_agree=99.87%** on `parity_16k.wav`.
+      Parity is measured DECISION-LEVEL (probability space + per-frame argmax), not on
+      raw log-softmax logits: the runtime diverges ~0.02-0.2 only in the deep-negative
+      log-prob tail (exp→~0, decision-irrelevant). FP32 diverges as much as FP16, so it
+      is runtime numerics, not FP16 rounding and not a conversion bug (graph is faithful —
+      the ONNX check matches to 1e-5). See `_parity.compare_logprob_segmentation`.
+- [x] ⚠️ **ANE deadlock found & documented:** `compute_units=.all` hangs the first
+      Neural Engine predict indefinitely (~0% CPU) on this WavLM+Conformer model; CPU/GPU
+      predict returns in ms. Validation loads `.cpuOnly`; the Swift `ComputePolicy` default
+      is now `.cpuAndGPU`, with ANE opt-in/experimental until Phase 4 profiling.
 - [ ] `Sources/DiariZen/CoreMLBackend.swift` + model wrappers load the `.mlmodelc`
       and run inference; `Pipeline.swift` wires segmentation → aggregation →
-      embeddings → clustering.
-- **Gate:** native CoreML pipeline reproduces the upstream RTTM within a small DER
-  delta on the parity fixtures; runs on ANE-capable compute units.
+      embeddings → clustering. (Backend policy done; wrappers still skeletons.)
+- **Gate:** ✅ segmentation converts + reproduces PyTorch decisions on CPU/GPU;
+  ⬜ full Swift pipeline reproduces the upstream RTTM end-to-end; ⬜ ANE path fixed.
 
 ## Phase 3 — Clustering & post-processing in Swift
 - [ ] Port VBx / AHC + powerset decoding + overlap handling to Swift/CPU (or reuse

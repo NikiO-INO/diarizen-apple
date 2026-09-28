@@ -6,15 +6,24 @@ import Foundation
 /// CPU policy in one place.
 public struct CoreMLBackend {
 
-    /// Which compute units CoreML may use. Default keeps the ANE path available;
-    /// Phase 4 profiling decides the shipped default.
+    /// Which compute units CoreML may use.
+    ///
+    /// Default is `.cpuAndGPU`, NOT `.all`. The converted WavLM+Conformer
+    /// segmentation model DEADLOCKS on the first Neural Engine predict on Apple
+    /// Silicon — the call hangs indefinitely at ~0% CPU (reproduced in the Python
+    /// parity harness with `compute_units=.all`; CPU/GPU predict returns in
+    /// milliseconds). Until that ANE path is profiled and fixed (Phase 4), any
+    /// policy that includes the ANE (`.all`, `.cpuAndNeuralEngine`) is opt-in and
+    /// treated as experimental — do not ship it as the default.
     public enum ComputePolicy: Sendable {
-        case all                    // .all  — CPU + GPU + Neural Engine
-        case cpuAndNeuralEngine     // .cpuAndNeuralEngine
-        case cpuOnly                // .cpuOnly — parity/debug
+        case cpuAndGPU              // .cpuAndGPU — safe production default (no ANE hang)
+        case all                   // .all — CPU + GPU + Neural Engine (EXPERIMENTAL: ANE deadlock)
+        case cpuAndNeuralEngine    // .cpuAndNeuralEngine (EXPERIMENTAL: ANE deadlock)
+        case cpuOnly               // .cpuOnly — parity/debug
 
         var mlComputeUnits: MLComputeUnits {
             switch self {
+            case .cpuAndGPU: return .cpuAndGPU
             case .all: return .all
             case .cpuAndNeuralEngine: return .cpuAndNeuralEngine
             case .cpuOnly: return .cpuOnly
@@ -24,7 +33,7 @@ public struct CoreMLBackend {
 
     public let model: MLModel
 
-    public init(compiledModelURL: URL, policy: ComputePolicy = .all) throws {
+    public init(compiledModelURL: URL, policy: ComputePolicy = .cpuAndGPU) throws {
         let config = MLModelConfiguration()
         config.computeUnits = policy.mlComputeUnits
         do {

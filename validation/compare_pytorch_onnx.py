@@ -3,7 +3,7 @@
     python validation/compare_pytorch_onnx.py \
         --model BUT-FIT/diarizen-wavlm-base-s80-md \
         --onnx build/onnx/ \
-        --fixture validation/fixtures/EN2002a_30s.wav
+        --fixture validation/fixtures/parity_16k.wav
 
 Exit code is non-zero if any tensor is outside tolerance — wire this into CI.
 """
@@ -23,7 +23,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--model", default="BUT-FIT/diarizen-wavlm-base-s80-md")
     ap.add_argument("--onnx", default="build/onnx")
-    ap.add_argument("--fixture", default="validation/fixtures/EN2002a_30s.wav")
+    ap.add_argument("--fixture", default="validation/fixtures/parity_16k.wav")
     args = ap.parse_args()
 
     import numpy as np
