@@ -60,6 +60,7 @@ var dumpFbankPath: String?
 var dumpEmbPath: String?
 var dumpFeaturesPath: String?
 var debugClusterPath: String?
+var benchmarkRuns: Int?
 var weightsRawPath: String?
 var rawInputPath: String?
 var policy: CoreMLBackend.ComputePolicy = .cpuAndGPU
@@ -76,6 +77,7 @@ while i < args.count {
     case "--dump-embedding": i += 1; dumpEmbPath = args[safe: i]
     case "--dump-features": i += 1; dumpFeaturesPath = args[safe: i]
     case "--debug-cluster": i += 1; debugClusterPath = args[safe: i]
+    case "--benchmark": i += 1; benchmarkRuns = args[safe: i].flatMap { Int($0) } ?? 5
     case "--weights-raw": i += 1; weightsRawPath = args[safe: i]
     case "--raw-input": i += 1; rawInputPath = args[safe: i]
     case "--compute-units":
@@ -177,6 +179,32 @@ do {
         embeddings: CoreMLEmbedding(backend: try CoreMLBackend(modelURL: embURL, policy: policy)),
         clustering: VBxClustering(plda: plda)
     )
+
+    // Benchmark mode: run the full pipeline N times, report per-stage medians + RTF.
+    if let benchmarkRuns {
+        let audioDur = Double(waveform.count) / 16_000.0
+        _ = try pipeline.diarize(waveform: waveform, sampleRate: 16_000)  // warm-up
+        var seg = [Double](), emb = [Double](), clu = [Double](), rec = [Double](), tot = [Double]()
+        for _ in 0..<benchmarkRuns {
+            _ = try pipeline.diarize(waveform: waveform, sampleRate: 16_000)
+            let t = pipeline.timings
+            seg.append(t.segmentation); emb.append(t.embedding)
+            clu.append(t.clustering); rec.append(t.reconstruction); tot.append(t.total)
+        }
+        func med(_ a: [Double]) -> Double { let s = a.sorted(); return s[s.count / 2] }
+        func f(_ x: Double) -> String { String(format: "%.3f", x) }
+        let mt = med(tot)
+        print("""
+        backend: native CoreML (\(policy)) + Swift; runs=\(benchmarkRuns); audio=\(f(audioDur))s
+          segmentation   \(f(med(seg)))s
+          embedding      \(f(med(emb)))s
+          clustering     \(f(med(clu)))s
+          reconstruction \(f(med(rec)))s
+          total (median) \(f(mt))s
+          RTF            \(String(format: "%.4f", mt / audioDur))
+        """)
+        exit(0)
+    }
 
     // Phase 2 parity mode: dump the pre-clustering features (binarized + embeddings).
     if let dumpFeaturesPath {

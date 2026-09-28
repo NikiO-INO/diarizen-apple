@@ -39,11 +39,23 @@ public struct DiarizationFeatures: Sendable {
 ///
 ///   audio → segmentation (CoreML) → aggregation (Swift)
 ///         → embeddings (CoreML) → clustering/VBx (Swift) → turns
+/// Per-stage wall-clock (seconds) for one `diarize` run — for benchmarking.
+public struct StageTimings: Sendable {
+    public var segmentation = 0.0
+    public var embedding = 0.0
+    public var clustering = 0.0
+    public var reconstruction = 0.0
+    public var total = 0.0
+}
+
 public final class DiarizationPipeline {
     private let segmentation: SegmentationModel
     private let embeddings: EmbeddingModel
     private let clustering: VBxClustering?
     private let powerset: Powerset
+
+    /// Wall-clock breakdown of the most recent `diarize` call.
+    public private(set) var timings = StageTimings()
 
     // Pipeline constants (base-s80-md), mirroring the DiariZen config + pyannote.
     static let windowSamples = 256_000  // 16 s @ 16 kHz
@@ -71,7 +83,11 @@ public final class DiarizationPipeline {
         guard let clustering else {
             throw DiariZenError.modelLoad("clustering (PLDA) not configured")
         }
+        timings = StageTimings()
+        let t0 = Date()
         let feats = try extractFeatures(waveform: waveform, sampleRate: sampleRate)
+
+        let tCluster = Date()
         var hard = clustering.cluster(embeddings: feats.embeddings, binarized: feats.binarized)
         // Inactive speakers (no active frame in a chunk) → -2, as in the pipeline.
         for c in feats.binarized.indices {
@@ -79,10 +95,15 @@ public final class DiarizationPipeline {
                 if !feats.binarized[c].contains(where: { $0[s] > 0.5 }) { hard[c][s] = -2 }
             }
         }
-        return Reconstruction.turns(
+        let tRecon = Date()
+        timings.clustering = tRecon.timeIntervalSince(tCluster)
+        let turns = Reconstruction.turns(
             binarized: feats.binarized, hardClusters: hard, window: feats.window,
             frame: Self.frameResolution, sampleRate: sampleRate
         )
+        timings.reconstruction = Date().timeIntervalSince(tRecon)
+        timings.total = Date().timeIntervalSince(t0)
+        return turns
     }
 
     /// Phase 2: segmentation sliding window → powerset decode → median filter →
@@ -109,19 +130,24 @@ public final class DiarizationPipeline {
         binarized.reserveCapacity(starts.count)
         windows.reserveCapacity(starts.count)
 
+        timings.segmentation = 0
         for s in starts {
             var window = [Float](repeating: 0, count: windowSamples)
             let count = Swift.min(windowSamples, n - s)
             if count > 0 { for i in 0..<count { window[i] = waveform[s + i] } }
             windows.append(window)
 
+            let tSeg = Date()
             let seg = try segmentation.segment(chunk: window)      // [799][11] log-probs
+            timings.segmentation += Date().timeIntervalSince(tSeg)
             var multilabel = powerset.toMultilabel(seg.frames)     // [799][numSpeakers] 0/1
             Self.medianFilterFrames(&multilabel, window: Self.medianWindow)
             binarized.append(multilabel)
         }
 
+        let tEmb = Date()
         let embeddings = try extractEmbeddings(binarized: binarized, windows: windows, numSpeakers: numSpeakers)
+        timings.embedding = Date().timeIntervalSince(tEmb)
         return DiarizationFeatures(
             binarized: binarized,
             embeddings: embeddings,

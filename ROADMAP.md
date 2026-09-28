@@ -97,12 +97,19 @@ wrappers once the pipeline is proven.
   `compare_swift_rttm.py`, `dump_clustering_oracle.py`, `dump_rttm_oracle.py`; unit
   tests cover Hungarian / AHC / cosine / Binarize.
 
-## Phase 4 — CLI + benchmarks
-- [ ] `Sources/diarizen-cli`: `diarizen-cli <audio.wav> [--compute-units …] --output <rttm>`.
-- [ ] `benchmarks/`: RTF / latency / peak memory / CPU / energy across PyTorch-MPS,
-      ORT CPU, ORT CoreML EP, native CoreML, on ≥1 Apple Silicon generation.
-      Fill `benchmarks/RESULTS.md`. Do **not** claim "runs on ANE" without profiling.
-- **Gate:** reproducible benchmark numbers + honest README claims.
+## Phase 4 — CLI + benchmarks  🟢 CLI + native/PyTorch benchmarks done
+- [x] `diarizen-cli <audio.wav> [--compute-units cpu-gpu|cpu|all|cpu-ane] [--output <rttm>]`
+      emits RTTM; robust `AudioLoader` (fast path for 16 kHz mono). Plus `--benchmark`
+      and the `--dump-*`/`--debug-cluster` parity modes.
+- [x] `benchmarks/`: RTF / latency / peak memory, **native CoreML (CPU, CPU+GPU) vs
+      PyTorch-CPU** on M2 Pro. Native CPU+GPU: **RTF 0.055, 226 MB** — ~11× faster and
+      ~33× lighter than PyTorch-CPU (RTF 0.602, 7.3 GB). See `benchmarks/RESULTS.md`,
+      reproduce with `benchmarks/run.sh`. ANE **excluded** (deadlocks — no "runs on ANE"
+      claim). Per-stage timing via `Pipeline.timings`.
+- [ ] Deferred: ORT (CPU / CoreML EP) + PyTorch-MPS *full-pipeline* benchmarks (only
+      segmentation was ported to ONNX); energy / per-core CPU (needs `powermetrics`).
+- **Gate:** ✅ reproducible benchmark numbers + honest README claims (ANE not claimed);
+  ⬜ ANE path profiled/fixed.
 
 ## Phase 5 — meetlify integration
 - [ ] Add a `diarizen` diarization engine to meetlify (sidecar over `diarizen-cli`,

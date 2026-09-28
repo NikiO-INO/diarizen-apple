@@ -2,46 +2,63 @@ import AVFoundation
 import Foundation
 
 /// Decode an audio file to mono Float samples at a target sample rate (16 kHz).
-/// Uses AVAudioFile + a converter so we depend on no external tools at runtime.
+/// Uses AVAudioFile so we depend on no external tools at runtime. When the input
+/// is already mono at the target rate (the common case) the samples are returned
+/// directly; otherwise an AVAudioConverter resamples/downmixes.
 public enum AudioLoader {
 
     public static func loadMono(url: URL, sampleRate: Double = 16_000) throws -> [Float] {
-        let file = try AVAudioFile(forReading: url)
-        let outFormat = AVAudioFormat(
-            commonFormat: .pcmFormatFloat32,
-            sampleRate: sampleRate,
-            channels: 1,
-            interleaved: false
-        )!
-        guard let converter = AVAudioConverter(from: file.processingFormat, to: outFormat) else {
+        let file: AVAudioFile
+        do {
+            file = try AVAudioFile(forReading: url)
+        } catch {
+            throw DiariZenError.inference("open \(url.lastPathComponent): \(error.localizedDescription)")
+        }
+        let inFormat = file.processingFormat  // always non-interleaved float32
+
+        guard let inBuf = AVAudioPCMBuffer(pcmFormat: inFormat, frameCapacity: AVAudioFrameCount(file.length)),
+              file.length > 0 else {
+            return []
+        }
+        do {
+            try file.read(into: inBuf)
+        } catch {
+            throw DiariZenError.inference("read \(url.lastPathComponent): \(error.localizedDescription)")
+        }
+
+        // Fast path: already mono at the target rate — return the channel directly.
+        if inFormat.sampleRate == sampleRate, inFormat.channelCount == 1,
+           let ch = inBuf.floatChannelData {
+            return Array(UnsafeBufferPointer(start: ch[0], count: Int(inBuf.frameLength)))
+        }
+
+        // Otherwise resample / downmix to mono float32 at `sampleRate`.
+        guard let outFormat = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 1, interleaved: false
+        ), let converter = AVAudioConverter(from: inFormat, to: outFormat) else {
             throw DiariZenError.inference("cannot create audio converter")
         }
 
-        var out = [Float]()
-        let inBuf = AVAudioPCMBuffer(
-            pcmFormat: file.processingFormat,
-            frameCapacity: 1 << 16
-        )!
-
-        while true {
-            try file.read(into: inBuf)
-            if inBuf.frameLength == 0 { break }
-            let ratio = sampleRate / file.processingFormat.sampleRate
-            let cap = AVAudioFrameCount(Double(inBuf.frameLength) * ratio) + 1024
-            let outBuf = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: cap)!
-            var err: NSError?
-            var fed = false
-            converter.convert(to: outBuf, error: &err) { _, status in
-                if fed { status.pointee = .noDataNow; return nil }
-                fed = true
-                status.pointee = .haveData
-                return inBuf
-            }
-            if let err { throw DiariZenError.inference("resample: \(err)") }
-            if let ch = outBuf.floatChannelData, outBuf.frameLength > 0 {
-                out.append(contentsOf: UnsafeBufferPointer(start: ch[0], count: Int(outBuf.frameLength)))
-            }
+        let ratio = sampleRate / inFormat.sampleRate
+        let outCapacity = AVAudioFrameCount(Double(inBuf.frameLength) * ratio) + 4096
+        guard let outBuf = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: outCapacity) else {
+            throw DiariZenError.inference("cannot allocate output buffer")
         }
-        return out
+
+        var err: NSError?
+        var fed = false
+        let status = converter.convert(to: outBuf, error: &err) { _, inputStatus in
+            if fed { inputStatus.pointee = .endOfStream; return nil }
+            fed = true
+            inputStatus.pointee = .haveData
+            return inBuf
+        }
+        if status == .error {
+            throw DiariZenError.inference("resample: \(err?.localizedDescription ?? "unknown")")
+        }
+        guard let ch = outBuf.floatChannelData else {
+            throw DiariZenError.inference("no output channel data")
+        }
+        return Array(UnsafeBufferPointer(start: ch[0], count: Int(outBuf.frameLength)))
     }
 }
