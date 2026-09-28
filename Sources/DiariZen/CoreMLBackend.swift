@@ -8,17 +8,19 @@ public struct CoreMLBackend {
 
     /// Which compute units CoreML may use.
     ///
-    /// Default is `.cpuAndGPU`, NOT `.all`. The converted WavLM+Conformer
-    /// segmentation model DEADLOCKS on the first Neural Engine predict on Apple
-    /// Silicon — the call hangs indefinitely at ~0% CPU (reproduced in the Python
-    /// parity harness with `compute_units=.all`; CPU/GPU predict returns in
-    /// milliseconds). Until that ANE path is profiled and fixed (Phase 4), any
-    /// policy that includes the ANE (`.all`, `.cpuAndNeuralEngine`) is opt-in and
-    /// treated as experimental — do not ship it as the default.
+    /// Default is `.cpuAndGPU`, the fastest measured policy for this model
+    /// (RTF 0.055; see benchmarks/RESULTS.md). Findings on the WavLM+Conformer
+    /// segmentation model (Apple Silicon):
+    ///   - `.all` (CPU+GPU+ANE) **DEADLOCKS** — the first predict hangs indefinitely
+    ///     at ~0% CPU. This is specifically the GPU+ANE partitioning; avoid it.
+    ///   - `.cpuAndNeuralEngine` runs, but WavLM segmentation is ~12× SLOWER on the
+    ///     ANE than on the GPU (0.40 s vs 0.033 s per chunk) and uses ~5× the memory,
+    ///     so it is not worth using for this model. Kept as an opt-in.
+    ///   - `.cpuAndGPU` / `.cpuOnly` are fine; GPU is fastest overall.
     public enum ComputePolicy: Sendable {
-        case cpuAndGPU              // .cpuAndGPU — safe production default (no ANE hang)
-        case all                   // .all — CPU + GPU + Neural Engine (EXPERIMENTAL: ANE deadlock)
-        case cpuAndNeuralEngine    // .cpuAndNeuralEngine (EXPERIMENTAL: ANE deadlock)
+        case cpuAndGPU              // .cpuAndGPU — production default, fastest here
+        case all                   // .all — CPU + GPU + Neural Engine (DEADLOCKS — do not use)
+        case cpuAndNeuralEngine    // .cpuAndNeuralEngine (works, but slow for WavLM seg)
         case cpuOnly               // .cpuOnly — parity/debug
 
         var mlComputeUnits: MLComputeUnits {

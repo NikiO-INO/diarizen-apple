@@ -97,19 +97,23 @@ wrappers once the pipeline is proven.
   `compare_swift_rttm.py`, `dump_clustering_oracle.py`, `dump_rttm_oracle.py`; unit
   tests cover Hungarian / AHC / cosine / Binarize.
 
-## Phase 4 — CLI + benchmarks  🟢 CLI + native/PyTorch benchmarks done
+## Phase 4 — CLI + benchmarks  ✅ DONE
 - [x] `diarizen-cli <audio.wav> [--compute-units cpu-gpu|cpu|all|cpu-ane] [--output <rttm>]`
       emits RTTM; robust `AudioLoader` (fast path for 16 kHz mono). Plus `--benchmark`
       and the `--dump-*`/`--debug-cluster` parity modes.
-- [x] `benchmarks/`: RTF / latency / peak memory, **native CoreML (CPU, CPU+GPU) vs
-      PyTorch-CPU** on M2 Pro. Native CPU+GPU: **RTF 0.055, 226 MB** — ~11× faster and
-      ~33× lighter than PyTorch-CPU (RTF 0.602, 7.3 GB). See `benchmarks/RESULTS.md`,
-      reproduce with `benchmarks/run.sh`. ANE **excluded** (deadlocks — no "runs on ANE"
-      claim). Per-stage timing via `Pipeline.timings`.
-- [ ] Deferred: ORT (CPU / CoreML EP) + PyTorch-MPS *full-pipeline* benchmarks (only
-      segmentation was ported to ONNX); energy / per-core CPU (needs `powermetrics`).
-- **Gate:** ✅ reproducible benchmark numbers + honest README claims (ANE not claimed);
-  ⬜ ANE path profiled/fixed.
+- [x] `benchmarks/`: RTF / latency / peak memory across **native CoreML (CPU, CPU+GPU,
+      CPU+ANE) vs PyTorch (CPU, MPS)** on M2 Pro. Native CPU+GPU: **RTF 0.055, 226 MB**.
+      ~11× faster / ~33× lighter than PyTorch-CPU; a speed wash with PyTorch-MPS
+      (0.048) but ~8× lighter and Python-free. `benchmarks/{run.sh,bench_python.py,RESULTS.md}`;
+      per-stage timing via `Pipeline.timings`.
+- [x] **ANE investigated (deadlock resolved):** `.all` (CPU+GPU+ANE) genuinely deadlocks
+      (partitioning conflict — avoid). `.cpuAndNeuralEngine` works and is *accurate*
+      (DER 0.505%) but WavLM seg is ~12× slower on ANE than GPU (transformer, not
+      ANE-friendly). `.cpuAndGPU` stays the default. Docs corrected in `CoreMLBackend.swift`.
+      Original 13-min "hang" = slow first-time ANE compilation, since cached.
+- [x] Energy: `benchmarks/energy.sh` (sudo/`powermetrics`) provided for the user to run.
+- [ ] Deferred (low value): ORT full-pipeline (only seg is in ONNX; not a production target).
+- **Gate met:** reproducible benchmark numbers + honest claims; ANE understood, not overclaimed.
 
 ## Phase 5 — meetlify integration
 - [ ] Add a `diarizen` diarization engine to meetlify (sidecar over `diarizen-cli`,

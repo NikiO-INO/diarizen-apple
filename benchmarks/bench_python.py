@@ -24,6 +24,7 @@ def main() -> None:
     ap.add_argument("--model", default="BUT-FIT/diarizen-wavlm-base-s80-md")
     ap.add_argument("--wav", default="build/DiariZen/example/EN2002a_30s.wav")
     ap.add_argument("--runs", type=int, default=5)
+    ap.add_argument("--device", default="cpu", choices=["cpu", "mps"])
     args = ap.parse_args()
 
     import torch
@@ -33,6 +34,10 @@ def main() -> None:
 
     torch.set_num_threads(os.cpu_count() or 1)
     pipe = load_pipeline(args.model)  # not timed
+    if args.device == "mps":
+        # WavLM/Conformer + WeSpeaker on MPS; compute_fbank already falls back to CPU
+        # for the FFT. VBx clustering stays on CPU (numpy).
+        pipe.to(torch.device("mps"))
 
     info = torchaudio.info(args.wav)
     audio_dur = info.num_frames / info.sample_rate
@@ -50,7 +55,7 @@ def main() -> None:
     # macOS ru_maxrss is in bytes.
     peak_mb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (1024 * 1024)
 
-    print(f"backend: PyTorch CPU; runs={args.runs}; audio={audio_dur:.1f}s")
+    print(f"backend: PyTorch {args.device.upper()}; runs={args.runs}; audio={audio_dur:.1f}s")
     print(f"  total (median) {median:.3f}s")
     print(f"  RTF            {median / audio_dur:.4f}")
     print(f"  peak RSS       {peak_mb:.0f} MB")

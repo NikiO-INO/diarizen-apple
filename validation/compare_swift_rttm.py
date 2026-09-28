@@ -31,6 +31,7 @@ def main() -> int:
     ap.add_argument("--coreml", default="build/coreml")
     ap.add_argument("--wav", default="build/DiariZen/example/EN2002a_30s.wav")
     ap.add_argument("--oracle", default="build/oracle/EN2002a.coreml.rttm")
+    ap.add_argument("--compute-units", default="cpu")
     args = ap.parse_args()
 
     import numpy as np
@@ -50,7 +51,7 @@ def main() -> int:
         swift_rttm = os.path.join(tmp, "swift.rttm")
         samples.tofile(raw)
         subprocess.run(
-            [args.cli, "--models", args.coreml, "--compute-units", "cpu",
+            [args.cli, "--models", args.coreml, "--compute-units", args.compute_units,
              "--raw-input", raw, "--output", swift_rttm],
             check=True,
         )
