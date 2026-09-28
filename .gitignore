@@ -16,6 +16,8 @@ weights/
 validation/fixtures/*.npy
 validation/fixtures/*.npz
 validation/fixtures/*.wav
+# golden RTTMs are model-derived (CC-BY-NC) — regenerate, don't commit
+validation/fixtures/*.rttm
 !validation/fixtures/.gitkeep
 
 # --- Python ---

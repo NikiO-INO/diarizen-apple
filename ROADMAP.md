@@ -15,15 +15,18 @@ wrappers once the pipeline is proven.
       segmentation `(1,1,256000) → (1,799,11)`, VBx clustering, WeSpeaker embed.
 - **Gate met:** DiariZen runs in Python; export target + shapes are named.
 
-## Phase 1 — ONNX reference backend  🟢 segmentation done
+## Phase 1 — ONNX reference backend  ✅ DONE
 - [x] `export_onnx.py`: segmentation (WavLM+Conformer) → `segmentation.onnx`
       (opset 17, static shapes). Exports cleanly.
 - [x] Runs under ONNX Runtime CPU.
 - [x] `compare_pytorch_onnx.py`: **PyTorch ≈ ONNX PASS** — max_abs=3.05e-05,
-      mean_abs=4.0e-06 on the `EN2002a_30s` fixture (FP32 rounding).
-- [ ] Wire ONNX segmentation into the full pipeline (embedding + VBx) and
-      reproduce the upstream RTTM end-to-end.
-- **Gate:** ✅ segmentation parity; ⬜ full-pipeline RTTM reproduction.
+      mean_abs=4.0e-06 on the `parity_16k` fixture (FP32 rounding).
+- [x] `reproduce_rttm.py`: wire ONNX segmentation into the FULL upstream pipeline
+      (WeSpeaker embeddings + VBx clustering) by swapping only
+      `pipeline._segmentation.model.forward`. On `EN2002a_30s` (3 speakers, overlap):
+      **DER(golden, onnx)=0.000%, byte-identical RTTM.** Golden RTTM saved to
+      `validation/fixtures/EN2002a.golden.rttm` for the Swift port to diff against.
+- **Gate:** ✅ segmentation parity; ✅ full-pipeline RTTM reproduction.
 
 ## Phase 2 — Native CoreML production backend  🟢 segmentation converted + validated
 - [x] `conversion/export_coreml.py`: convert **directly PyTorch → CoreML**
