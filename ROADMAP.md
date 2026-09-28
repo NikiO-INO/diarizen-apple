@@ -121,7 +121,18 @@ wrappers once the pipeline is proven.
 - **Gate:** selectable in Settings, A/B-able against Nemotron/FluidAudio.
 
 ## Phase 6 — upgrade + open-source
-- [ ] Swap the wrappers to `diarizen-wavlm-large-s80-md-v2`; re-run parity + benchmarks.
+- [x] **Model switching is checkpoint-agnostic**: `--models <dir>` selects the export,
+      same binary. Powerset is inferred from the segmentation class count
+      (base 11 → max 2; large-v2 16 → max 4); window + frame resolution match. Export
+      any checkpoint with `--model` into its own dir. `conversion/inspect_model.py`
+      prints a model's geometry before exporting.
+- [ ] **`diarizen-wavlm-large-s80-md-v2` — KNOWN ISSUE, not yet faithful.** Export
+      scripts run and the pipeline auto-adapts, but the CoreML segmentation diverges
+      from PyTorch (~29% argmax; FP32 too → not FP16; op set identical to base; output
+      range sane → a subtle per-layer numerical divergence in the 24-layer WavLM, needs
+      layer-by-layer debugging). `normalize_waveform=True` (large only) also breaks the
+      ONNX export path. **base-s80-md is the validated default** (30 s DER 0.495% vs
+      pyannote; AMI EN2002a 21.16% vs 21.10%). Fixing large-v2 conversion is future work.
 - [ ] Polish docs, CONTRIBUTING, CI; flip the repo public.
 
 ## Later (not now)
