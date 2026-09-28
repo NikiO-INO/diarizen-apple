@@ -95,6 +95,12 @@ while i < args.count {
     i += 1
 }
 
+if case .all = policy {
+    let warn = "warning: --compute-units all (CPU+GPU+ANE) deadlocks the segmentation "
+        + "predict on this model; use cpu-gpu (default) or cpu-ane.\n"
+    FileHandle.standardError.write(Data(warn.utf8))
+}
+
 // Phase 3 parity mode: PLDA transform + VBx on injected embeddings (no audio/model).
 if let debugClusterPath {
     struct In: Decodable { let train_emb: [[Float]]; let ahc: [Int]; let Fa: Double; let Fb: Double; let maxIters: Int }
