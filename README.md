@@ -157,6 +157,13 @@ Measured on an Apple M2 Pro (8P + 4E, 32 GB), macOS 27.0, with the
 `base-s80-md` checkpoint. Reproduce with `benchmarks/run.sh`. Model loading is
 excluded; timings are median wall-clock over a 30 s clip.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/benchmarks-dark.svg">
+    <img alt="Benchmarks: real-time factor, peak memory, and diarization error rate, native CoreML vs PyTorch" src="assets/benchmarks-light.svg" width="100%">
+  </picture>
+</p>
+
 | Backend | total | real-time factor | peak RSS |
 |---|---:|---:|---:|
 | native CoreML, CPU + GPU (default) | 1.12 s | **0.037** | **298 MB** |
