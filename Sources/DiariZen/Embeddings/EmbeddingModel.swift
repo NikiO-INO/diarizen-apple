@@ -34,7 +34,7 @@ public extension EmbeddingModel {
 /// mirror `conversion/export_embedding_coreml.py`.
 public struct CoreMLEmbedding: EmbeddingModel {
     public static let cropSamples = 256_000  // 16 s window
-    public static let segFrames = 799        // weights resolution (segmentation frames)
+    public static let segFrames = 799  // weights resolution (segmentation frames)
     static let inputFbank = "fbank"
     static let inputWeights = "weights"
     static let outputName = "embedding"

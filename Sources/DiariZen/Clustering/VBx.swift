@@ -96,10 +96,12 @@ public enum VBx {
 
             // ELBO (25) with early stop.
             var reg = 0.0
-            for s in 0..<S { for d in 0..<D {
-                let il = invL[s][d], al = alpha[s][d]
-                reg += Foundation.log(il) - il - al * al + 1
-            } }
+            for s in 0..<S {
+                for d in 0..<D {
+                    let il = invL[s][d], al = alpha[s][d]
+                    reg += Foundation.log(il) - il - al * al + 1
+                }
+            }
             let elbo = totalLogPx + Fb * 0.5 * reg
             if iter > 0 && elbo - prevELBO < epsilon { break }
             prevELBO = elbo

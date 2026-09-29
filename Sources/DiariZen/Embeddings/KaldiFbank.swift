@@ -13,15 +13,15 @@ import Foundation
 public struct KaldiFbank {
     public let sampleRate: Int
     public let numMelBins: Int
-    let frameLength: Int      // samples per frame (400 @ 25 ms / 16 kHz)
-    let frameShift: Int       // hop (160 @ 10 ms)
-    let fftSize: Int          // padded window, next pow2 (512)
-    let numFftBins: Int       // fftSize/2 (256) — kaldi drops the Nyquist bin
+    let frameLength: Int  // samples per frame (400 @ 25 ms / 16 kHz)
+    let frameShift: Int  // hop (160 @ 10 ms)
+    let fftSize: Int  // padded window, next pow2 (512)
+    let numFftBins: Int  // fftSize/2 (256) — kaldi drops the Nyquist bin
     let preemph: Float
     let waveformScale: Float  // WeSpeaker scales [-1,1] float to int16 range
 
-    private let window: [Float]           // Hamming, length frameLength
-    private let melMatrix: [[Float]]       // [numMelBins][numFftBins]
+    private let window: [Float]  // Hamming, length frameLength
+    private let melMatrix: [[Float]]  // [numMelBins][numFftBins]
     private let dft: vDSP.DFT<Float>
 
     public init(
@@ -30,7 +30,7 @@ public struct KaldiFbank {
         frameLengthMs: Double = 25.0,
         frameShiftMs: Double = 10.0,
         lowFreq: Double = 20.0,
-        highFreq: Double = 0.0,       // 0 → Nyquist
+        highFreq: Double = 0.0,  // 0 → Nyquist
         preemphasis: Float = 0.97,
         waveformScale: Float = 32768.0
     ) {
@@ -52,8 +52,9 @@ public struct KaldiFbank {
             numBins: numMelBins, numFftBins: padded / 2, fftSize: padded,
             sampleRate: Double(sampleRate), lowFreq: lowFreq, highFreq: nyquist
         )
-        self.dft = vDSP.DFT(count: padded, direction: .forward,
-                            transformType: .complexComplex, ofType: Float.self)!
+        self.dft = vDSP.DFT(
+            count: padded, direction: .forward,
+            transformType: .complexComplex, ofType: Float.self)!
     }
 
     /// Compute the CMVN'd log-mel features for a mono waveform in [-1, 1].
@@ -101,8 +102,9 @@ public struct KaldiFbank {
         var imagIn = [Float](repeating: 0, count: fftSize)
         var realOut = [Float](repeating: 0, count: fftSize)
         var imagOut = [Float](repeating: 0, count: fftSize)
-        dft.transform(inputReal: realIn, inputImaginary: imagIn,
-                      outputReal: &realOut, outputImaginary: &imagOut)
+        dft.transform(
+            inputReal: realIn, inputImaginary: imagIn,
+            outputReal: &realOut, outputImaginary: &imagOut)
 
         // Power spectrum on bins 0..<numFftBins (use_power = True)
         var power = [Float](repeating: 0, count: numFftBins)
@@ -163,7 +165,8 @@ public struct KaldiFbank {
                 let freq = fftBinWidth * Double(k)
                 let melK = mel(freq)
                 if melK > leftMel && melK < rightMel {
-                    let w = melK <= centerMel
+                    let w =
+                        melK <= centerMel
                         ? (melK - leftMel) / (centerMel - leftMel)
                         : (rightMel - melK) / (rightMel - centerMel)
                     banks[m][k] = Float(w)

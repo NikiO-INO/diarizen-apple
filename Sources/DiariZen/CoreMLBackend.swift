@@ -18,10 +18,10 @@ public struct CoreMLBackend {
     ///     so it is not worth using for this model. Kept as an opt-in.
     ///   - `.cpuAndGPU` / `.cpuOnly` are fine; GPU is fastest overall.
     public enum ComputePolicy: Sendable {
-        case cpuAndGPU              // .cpuAndGPU — production default, fastest here
-        case all                   // .all — CPU + GPU + Neural Engine (DEADLOCKS — do not use)
-        case cpuAndNeuralEngine    // .cpuAndNeuralEngine (works, but slow for WavLM seg)
-        case cpuOnly               // .cpuOnly — parity/debug
+        case cpuAndGPU  // .cpuAndGPU — production default, fastest here
+        case all  // .all — CPU + GPU + Neural Engine (DEADLOCKS — do not use)
+        case cpuAndNeuralEngine  // .cpuAndNeuralEngine (works, but slow for WavLM seg)
+        case cpuOnly  // .cpuOnly — parity/debug
 
         var mlComputeUnits: MLComputeUnits {
             switch self {

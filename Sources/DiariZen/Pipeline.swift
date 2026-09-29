@@ -2,9 +2,9 @@ import Foundation
 
 /// A single diarized turn on the audio timeline.
 public struct SpeakerTurn: Equatable, Sendable {
-    public let start: Double   // seconds
-    public let end: Double     // seconds
-    public let speaker: Int    // 1-based, stable within a run
+    public let start: Double  // seconds
+    public let end: Double  // seconds
+    public let speaker: Int  // 1-based, stable within a run
     public init(start: Double, end: Double, speaker: Int) {
         self.start = start
         self.end = end
@@ -14,9 +14,9 @@ public struct SpeakerTurn: Equatable, Sendable {
 
 /// Chunk-time geometry of the segmentation sliding window (pyannote `SlidingWindow`).
 public struct SlidingWindow: Sendable {
-    public let start: Double     // 0.0 s
+    public let start: Double  // 0.0 s
     public let duration: Double  // 16.0 s (segmentation window)
-    public let step: Double      // 1.6 s
+    public let step: Double  // 1.6 s
     public init(start: Double, duration: Double, step: Double) {
         self.start = start; self.duration = duration; self.step = step
     }
@@ -25,8 +25,8 @@ public struct SlidingWindow: Sendable {
 /// Everything Phase-3 clustering consumes: per-chunk binarized speaker activity and
 /// per-(chunk, speaker) embeddings, plus the window geometry to place chunks in time.
 public struct DiarizationFeatures: Sendable {
-    public let binarized: [[[Float]]]    // [chunk][frame][speaker], 0/1
-    public let embeddings: [[[Float]]]   // [chunk][speaker][dim]
+    public let binarized: [[[Float]]]  // [chunk][frame][speaker], 0/1
+    public let embeddings: [[[Float]]]  // [chunk][speaker][dim]
     public let window: SlidingWindow
     public init(binarized: [[[Float]]], embeddings: [[[Float]]], window: SlidingWindow) {
         self.binarized = binarized; self.embeddings = embeddings; self.window = window
@@ -59,9 +59,9 @@ public final class DiarizationPipeline {
 
     // Pipeline constants (base-s80-md), mirroring the DiariZen config + pyannote.
     static let windowSamples = 256_000  // 16 s @ 16 kHz
-    static let stepSeconds = 1.6        // segmentation_step * seg_duration = 0.1 * 16
-    static let medianWindow = 11        // median_filter size (1, 11, 1)
-    static let minNumFrames = 2         // ceil(799 * min_num_samples/num_samples) for embeddings
+    static let stepSeconds = 1.6  // segmentation_step * seg_duration = 0.1 * 16
+    static let medianWindow = 11  // median_filter size (1, 11, 1)
+    static let minNumFrames = 2  // ceil(799 * min_num_samples/num_samples) for embeddings
     static let embeddingBatchSize = 32  // CoreML embedding batch (flexible-shape model)
     // Segmentation receptive field (base-s80-md): 799 frames of 25 ms every 20 ms.
     static let frameResolution = FrameResolution(start: -0.00753125, duration: 0.025, step: 0.02)
@@ -126,8 +126,8 @@ public final class DiarizationPipeline {
         if hasLast { starts.append(numComplete * stepSamples) }
 
         let numSpeakers = powerset.numSpeakers
-        var binarized = [[[Float]]]()      // [chunk][frame][speaker]
-        var windows = [[Float]]()          // padded 16 s audio per chunk (for embeddings)
+        var binarized = [[[Float]]]()  // [chunk][frame][speaker]
+        var windows = [[Float]]()  // padded 16 s audio per chunk (for embeddings)
         binarized.reserveCapacity(starts.count)
         windows.reserveCapacity(starts.count)
 
@@ -144,14 +144,15 @@ public final class DiarizationPipeline {
             windows.append(window)
 
             let tSeg = Date()
-            let seg = try segmentation.segment(chunk: window)      // [frames][powerset classes]
+            let seg = try segmentation.segment(chunk: window)  // [frames][powerset classes]
             timings.segmentation += Date().timeIntervalSince(tSeg)
             if !decoderReady {
-                decoder = Powerset(numSpeakers: powerset.numSpeakers,
-                                   numPowersetClasses: seg.frames.first?.count ?? powerset.numPowersetClasses)
+                decoder = Powerset(
+                    numSpeakers: powerset.numSpeakers,
+                    numPowersetClasses: seg.frames.first?.count ?? powerset.numPowersetClasses)
                 decoderReady = true
             }
-            var multilabel = decoder.toMultilabel(seg.frames)      // [frames][numSpeakers] 0/1
+            var multilabel = decoder.toMultilabel(seg.frames)  // [frames][numSpeakers] 0/1
             Self.medianFilterFrames(&multilabel, window: Self.medianWindow)
             binarized.append(multilabel)
         }
@@ -162,7 +163,8 @@ public final class DiarizationPipeline {
         return DiarizationFeatures(
             binarized: binarized,
             embeddings: embeddings,
-            window: SlidingWindow(start: 0, duration: Double(windowSamples) / Double(sampleRate), step: Self.stepSeconds)
+            window: SlidingWindow(
+                start: 0, duration: Double(windowSamples) / Double(sampleRate), step: Self.stepSeconds)
         )
     }
 
