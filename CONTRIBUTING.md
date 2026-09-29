@@ -18,6 +18,14 @@ files. Please build in release at least once before sending a change: a few bugs
 here only appear under the optimizer (the powerset combination code once
 miscompiled under `-O`), and CI builds release for that reason.
 
+Code is formatted with `swift-format` using the repo's `.swift-format` config.
+Before sending a change, format it and check the lint (CI runs the same check):
+
+```bash
+swift-format format -i --recursive --configuration .swift-format Sources Tests
+swift-format lint  --strict --recursive --configuration .swift-format Sources Tests
+```
+
 The Python side is only for exporting models and running parity checks.
 
 ```bash

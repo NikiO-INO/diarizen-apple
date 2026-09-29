@@ -7,9 +7,9 @@ import Foundation
 /// over 4 speakers (subsets of size ≤ 2). Hard decoding (`soft=False`) is:
 /// per frame, argmax the powerset logits, then map that class to its speaker set.
 public struct Powerset {
-    public let numSpeakers: Int          // multi-label classes (4)
-    public let maxSetSize: Int           // max simultaneous speakers (2)
-    public let numPowersetClasses: Int   // (11)
+    public let numSpeakers: Int  // multi-label classes (4)
+    public let maxSetSize: Int  // max simultaneous speakers (2)
+    public let numPowersetClasses: Int  // (11)
     /// `mapping[k]` = the 0/1 speaker vector of powerset class `k`.
     let mapping: [[Float]]
 
@@ -32,8 +32,9 @@ public struct Powerset {
             if acc == numPowersetClasses { maxSet = k; break }
         }
         self.init(numSpeakers: numSpeakers, maxSetSize: maxSet)
-        precondition(self.numPowersetClasses == numPowersetClasses,
-                     "no maxSetSize for \(numSpeakers) speakers gives \(numPowersetClasses) powerset classes")
+        precondition(
+            self.numPowersetClasses == numPowersetClasses,
+            "no maxSetSize for \(numSpeakers) speakers gives \(numPowersetClasses) powerset classes")
     }
 
     static func binomial(_ n: Int, _ k: Int) -> Int {

@@ -13,25 +13,27 @@ import Foundation
 // first segmentation predict on this model (see CoreMLBackend.ComputePolicy).
 
 func usage() -> Never {
-    FileHandle.standardError.write(Data("""
-        DiariZen (Apple Silicon)
-          diarizen-cli <audio> [options]
+    FileHandle.standardError.write(
+        Data(
+            """
+            DiariZen (Apple Silicon)
+              diarizen-cli <audio> [options]
 
-        Options:
-          --models <dir>            Directory with Segmentation.mlpackage (+ Embedding.mlpackage)
-          --compute-units <u>       cpu-gpu | all | cpu-ane | cpu   (default: cpu-gpu)
-          --output <file>           Write RTTM (default: stdout)
-          --dump-segmentation <f>   Run segmentation on the first 16 s window, write
-                                    the [frames][classes] log-probs as JSON, and exit
-                                    (Phase 2 parity against the Python backend)
-          --dump-fbank <f>          Compute the Kaldi fbank of the first 16 s window,
-                                    write [frames][mels] as JSON, and exit (no model
-                                    needed; parity against torchaudio kaldi.fbank)
-          --raw-input <f>           Read the window as little-endian Float32 samples
-                                    from <f> instead of decoding <audio> (isolates
-                                    inference from the audio loader for parity)
+            Options:
+              --models <dir>            Directory with Segmentation.mlpackage (+ Embedding.mlpackage)
+              --compute-units <u>       cpu-gpu | all | cpu-ane | cpu   (default: cpu-gpu)
+              --output <file>           Write RTTM (default: stdout)
+              --dump-segmentation <f>   Run segmentation on the first 16 s window, write
+                                        the [frames][classes] log-probs as JSON, and exit
+                                        (Phase 2 parity against the Python backend)
+              --dump-fbank <f>          Compute the Kaldi fbank of the first 16 s window,
+                                        write [frames][mels] as JSON, and exit (no model
+                                        needed; parity against torchaudio kaldi.fbank)
+              --raw-input <f>           Read the window as little-endian Float32 samples
+                                        from <f> instead of decoding <audio> (isolates
+                                        inference from the audio loader for parity)
 
-        """.utf8))
+            """.utf8))
     exit(2)
 }
 
@@ -96,7 +98,8 @@ while i < args.count {
 }
 
 if case .all = policy {
-    let warn = "warning: --compute-units all (CPU+GPU+ANE) deadlocks the segmentation "
+    let warn =
+        "warning: --compute-units all (CPU+GPU+ANE) deadlocks the segmentation "
         + "predict on this model; use cpu-gpu (default) or cpu-ane.\n"
     FileHandle.standardError.write(Data(warn.utf8))
 }
@@ -110,8 +113,9 @@ if let debugClusterPath {
         let input = try JSONDecoder().decode(In.self, from: Data(contentsOf: URL(fileURLWithPath: debugClusterPath)))
         let plda = try PLDA(contentsOf: URL(fileURLWithPath: modelsDir).appendingPathComponent("plda_transform.json"))
         let fea = plda.transform(input.train_emb)
-        let (gamma, pi) = VBx.cluster(ahcInit: input.ahc, fea: fea, phi: plda.phi,
-                                      Fa: input.Fa, Fb: input.Fb, maxIters: input.maxIters)
+        let (gamma, pi) = VBx.cluster(
+            ahcInit: input.ahc, fea: fea, phi: plda.phi,
+            Fa: input.Fa, Fb: input.Fb, maxIters: input.maxIters)
         let outURL = URL(fileURLWithPath: outputPath ?? "cluster_debug.json")
         try JSONEncoder().encode(Out(fea: fea, gamma: gamma, pi: pi)).write(to: outURL)
         FileHandle.standardError.write(Data("wrote cluster debug → \(outURL.path)\n".utf8))
@@ -136,8 +140,9 @@ do {
         let window = Array(waveform.prefix(CoreMLSegmentation.windowSamples))
         let fbank = KaldiFbank().compute(window)
         try JSONEncoder().encode(fbank).write(to: URL(fileURLWithPath: dumpFbankPath))
-        FileHandle.standardError.write(Data(
-            "dumped fbank \(fbank.count)×\(fbank.first?.count ?? 0) → \(dumpFbankPath)\n".utf8))
+        FileHandle.standardError.write(
+            Data(
+                "dumped fbank \(fbank.count)×\(fbank.first?.count ?? 0) → \(dumpFbankPath)\n".utf8))
         exit(0)
     }
 
@@ -171,8 +176,9 @@ do {
         let seg = try segmentation.segment(chunk: window)
         let data = try JSONEncoder().encode(seg.frames)
         try data.write(to: URL(fileURLWithPath: dumpSegPath))
-        FileHandle.standardError.write(Data(
-            "dumped segmentation \(seg.frames.count)×\(seg.frames.first?.count ?? 0) → \(dumpSegPath)\n".utf8))
+        FileHandle.standardError.write(
+            Data(
+                "dumped segmentation \(seg.frames.count)×\(seg.frames.first?.count ?? 0) → \(dumpSegPath)\n".utf8))
         exit(0)
     }
 
@@ -200,15 +206,16 @@ do {
         func med(_ a: [Double]) -> Double { let s = a.sorted(); return s[s.count / 2] }
         func f(_ x: Double) -> String { String(format: "%.3f", x) }
         let mt = med(tot)
-        print("""
-        backend: native CoreML (\(policy)) + Swift; runs=\(benchmarkRuns); audio=\(f(audioDur))s
-          segmentation   \(f(med(seg)))s
-          embedding      \(f(med(emb)))s
-          clustering     \(f(med(clu)))s
-          reconstruction \(f(med(rec)))s
-          total (median) \(f(mt))s
-          RTF            \(String(format: "%.4f", mt / audioDur))
-        """)
+        print(
+            """
+            backend: native CoreML (\(policy)) + Swift; runs=\(benchmarkRuns); audio=\(f(audioDur))s
+              segmentation   \(f(med(seg)))s
+              embedding      \(f(med(emb)))s
+              clustering     \(f(med(clu)))s
+              reconstruction \(f(med(rec)))s
+              total (median) \(f(mt))s
+              RTF            \(String(format: "%.4f", mt / audioDur))
+            """)
         exit(0)
     }
 
@@ -218,7 +225,8 @@ do {
         struct Features: Encodable { let binarized: [[[Float]]]; let embeddings: [[[Float]]] }
         let data = try JSONEncoder().encode(Features(binarized: feats.binarized, embeddings: feats.embeddings))
         try data.write(to: URL(fileURLWithPath: dumpFeaturesPath))
-        let bShape = "\(feats.binarized.count)×\(feats.binarized.first?.count ?? 0)×\(feats.binarized.first?.first?.count ?? 0)"
+        let bShape =
+            "\(feats.binarized.count)×\(feats.binarized.first?.count ?? 0)×\(feats.binarized.first?.first?.count ?? 0)"
         let eShape = "\(feats.embeddings.count)×\(feats.embeddings.first?.count ?? 0)"
         let msg = "dumped features: binarized \(bShape), embeddings \(eShape) → \(dumpFeaturesPath)\n"
         FileHandle.standardError.write(Data(msg.utf8))
@@ -227,9 +235,12 @@ do {
 
     let turns = try pipeline.diarize(waveform: waveform, sampleRate: 16_000)
     let t = pipeline.timings
-    FileHandle.standardError.write(Data(String(
-        format: "timings: seg=%.2fs emb=%.2fs cluster=%.2fs recon=%.2fs total=%.2fs (%d turns)\n",
-        t.segmentation, t.embedding, t.clustering, t.reconstruction, t.total, turns.count).utf8))
+    FileHandle.standardError.write(
+        Data(
+            String(
+                format: "timings: seg=%.2fs emb=%.2fs cluster=%.2fs recon=%.2fs total=%.2fs (%d turns)\n",
+                t.segmentation, t.embedding, t.clustering, t.reconstruction, t.total, turns.count
+            ).utf8))
     let fileId = audioPath.map { URL(fileURLWithPath: $0).deletingPathExtension().lastPathComponent } ?? "audio"
     let rttm = RTTM.serialize(turns, fileId: fileId)
     if let outputPath {

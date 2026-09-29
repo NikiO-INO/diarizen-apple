@@ -14,9 +14,9 @@ public struct FrameResolution: Sendable {
 /// per-frame top-`count` selection) → `Binarize`.
 public enum Reconstruction {
     public static func turns(
-        binarized: [[[Float]]],   // [chunk][frame][localSpeaker], 0/1
-        hardClusters: [[Int]],    // [chunk][localSpeaker], -2 = unassigned
-        window: SlidingWindow,    // chunk window (start 0, duration 16, step 1.6)
+        binarized: [[[Float]]],  // [chunk][frame][localSpeaker], 0/1
+        hardClusters: [[Int]],  // [chunk][localSpeaker], -2 = unassigned
+        window: SlidingWindow,  // chunk window (start 0, duration 16, step 1.6)
         frame: FrameResolution,
         sampleRate: Int
     ) -> [SpeakerTurn] {
@@ -47,10 +47,12 @@ public enum Reconstruction {
         // speaker_count: aggregate(Σ_speakers binarized, averaged) then round.
         var sumScores = zeros3(numChunks, framesPerChunk, 1)
         let sumMask = mask3(numChunks, framesPerChunk, 1, value: true)
-        for c in 0..<numChunks { for f in 0..<framesPerChunk {
-            var s = 0.0; for spk in 0..<localSpeakers { s += Double(binarized[c][f][spk]) }
-            sumScores[c][f][0] = s
-        } }
+        for c in 0..<numChunks {
+            for f in 0..<framesPerChunk {
+                var s = 0.0; for spk in 0..<localSpeakers { s += Double(binarized[c][f][spk]) }
+                sumScores[c][f][0] = s
+            }
+        }
         let countAgg = aggregate(sumScores, sumMask, window, numChunks, frame, skipAverage: false, missing: 0)
         let count = countAgg.map { Int($0[0].rounded(.toNearestOrEven)) }
 
@@ -131,7 +133,9 @@ public enum Reconstruction {
                 let t = ts(i); lastT = t
                 let y = scores[i][k]
                 if isActive {
-                    if y < offset { turns.append(SpeakerTurn(start: start, end: t, speaker: k)); start = t; isActive = false }
+                    if y < offset {
+                        turns.append(SpeakerTurn(start: start, end: t, speaker: k)); start = t; isActive = false
+                    }
                 } else if y > onset {
                     start = t; isActive = true
                 }

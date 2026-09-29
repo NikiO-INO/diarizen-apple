@@ -9,15 +9,15 @@ import Foundation
 ///   xvec_tf(x) = √L · l2( (lda·ᵀ (√D · l2(x−mean1))) − mean2 )
 ///   plda_tf(y) = (y − plda_mu) · plda_trᵀ            (lda_dim = 128, no truncation)
 public struct PLDA {
-    let mean1: [Double]      // (256)
-    let mean2: [Double]      // (128)
-    let lda: [[Double]]      // (256, 128)
-    let pldaMu: [Double]     // (128)
-    let pldaTr: [[Double]]   // (128, 128)
-    public let phi: [Double] // (128) across-class covariance diagonal (VBx Phi)
+    let mean1: [Double]  // (256)
+    let mean2: [Double]  // (128)
+    let lda: [[Double]]  // (256, 128)
+    let pldaMu: [Double]  // (128)
+    let pldaTr: [[Double]]  // (128, 128)
+    public let phi: [Double]  // (128) across-class covariance diagonal (VBx Phi)
 
-    let inDim: Int           // 256
-    let ldaDim: Int          // 128
+    let inDim: Int  // 256
+    let ldaDim: Int  // 128
 
     public init(contentsOf url: URL) throws {
         let raw = try JSONDecoder().decode([String: Field].self, from: Data(contentsOf: url))
@@ -30,7 +30,7 @@ public struct PLDA {
                 throw DiariZenError.modelLoad("plda transform missing/!2D '\(k)'")
             }
             let (r, c) = (f.shape[0], f.shape[1])
-            return (0..<r).map { Array(f.data[$0 * c ..< ($0 + 1) * c]) }
+            return (0..<r).map { Array(f.data[$0 * c..<($0 + 1) * c]) }
         }
         self.mean1 = try vec("mean1")
         self.mean2 = try vec("mean2")
