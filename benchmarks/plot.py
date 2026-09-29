@@ -31,6 +31,14 @@ MEMORY = {  # peak RSS in MB, lower is better
         ("PyTorch CPU", 7474, "pytorch"),
     ],
 }
+RUNTIME = {  # wall-clock on the full 35.7 min AMI EN2002a meeting, lower is better
+    "title": "Full-meeting runtime (AMI EN2002a, 35.7 min)",
+    "unit": " s",
+    "rows": [
+        ("Swift (CoreML)", 151, "coreml"),
+        ("PyTorch CPU", 3042, "pytorch"),
+    ],
+}
 ACC = {  # DER % on AMI EN2002a, lower is better
     "title": "Diarization error rate, % (AMI EN2002a)",
     "unit": "%",
@@ -40,7 +48,7 @@ ACC = {  # DER % on AMI EN2002a, lower is better
         ("base-s80-md", 21.16, "coreml"),
     ],
 }
-PANELS = [SPEED, MEMORY, ACC]
+PANELS = [SPEED, MEMORY, RUNTIME, ACC]
 
 THEME = {
     "light": {
@@ -151,8 +159,8 @@ def render(mode):
 
     out.append(
         f'<text x="0" y="{h-8}" font-family="{SANS}" font-size="11.5" fill="{c["muted"]}">'
-        f'Speed and memory on a 30 s clip; DER on the full AMI EN2002a meeting. '
-        f'Reproduce: benchmarks/run.sh</text>'
+        f'30 s clip: real-time factor and memory. Full AMI EN2002a meeting '
+        f'(35.7 min): runtime and DER. Reproduce: benchmarks/run.sh</text>'
     )
     out.append("</svg>")
     return "\n".join(out) + "\n"

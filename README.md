@@ -153,35 +153,21 @@ explains the flow in full.
 
 ## Accuracy and benchmarks
 
-Measured on an Apple M2 Pro (8P + 4E, 32 GB), macOS 27.0, with the
-`base-s80-md` checkpoint. Reproduce with `benchmarks/run.sh`. Model loading is
-excluded; timings are median wall-clock over a 30 s clip.
+Measured on an Apple M2 Pro (8P + 4E, 32 GB), macOS 27.0. Speed and memory use a
+30 s clip with `base-s80-md`; the full-meeting runtime and accuracy use the full
+AMI EN2002a meeting (35.7 min, 4 speakers, single distant mic) against the human
+reference. Model loading is excluded. Reproduce with `benchmarks/run.sh` and
+`validation/eval_ami.py`.
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/benchmarks-dark.svg">
-    <img alt="Benchmarks: real-time factor, peak memory, and diarization error rate, native CoreML vs PyTorch" src="assets/benchmarks-light.svg" width="100%">
+    <img alt="Benchmarks: real-time factor, peak memory, full-meeting runtime, and diarization error rate, native CoreML vs PyTorch" src="assets/benchmarks-light.svg" width="100%">
   </picture>
 </p>
 
-| Backend | total | real-time factor | peak RSS |
-|---|---:|---:|---:|
-| native CoreML, CPU + GPU (default) | 1.12 s | **0.037** | **298 MB** |
-| native CoreML, CPU only | 1.71 s | 0.057 | 1050 MB |
-| PyTorch, MPS | 1.43 s | 0.048 | 1832 MB |
-| PyTorch, CPU (reference) | 18.04 s | 0.602 | 7474 MB |
-
-Accuracy on the full AMI EN2002a meeting (35.7 min, 4 speakers, single distant
-mic) against the human reference, via `validation/eval_ami.py`:
-
-| Model | DER vs reference |
-|---|---:|
-| `base-s80-md` (this port) | 21.16% |
-| DiariZen base (PyTorch) | 21.10% |
-| `large-s80-md-v2` (this port) | **17.50%** |
-
-The base port lands 0.06 points from the PyTorch pipeline on this meeting, and
-its output differs from PyTorch's by 1.90% DER. The 30 s parity clip reproduces
+The base port lands 0.06 points from the PyTorch pipeline on this meeting (21.16%
+vs 21.10%), and its output differs from PyTorch's by 1.90% DER. The 30 s parity clip reproduces
 the upstream RTTM at 0.495% DER. On the full meeting the Swift pipeline runs in
 151 s against 3042 s for PyTorch on CPU, about 20 times faster. Full numbers,
 per-stage timings, and the honest caveats are in `benchmarks/RESULTS.md`.
