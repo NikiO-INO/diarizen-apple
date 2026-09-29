@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: DiariZen (upstream models and pipeline)
+    url: https://github.com/BUTSpeechFIT/DiariZen
+    about: Questions about the models, training, or accuracy belong upstream.
