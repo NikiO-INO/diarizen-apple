@@ -19,6 +19,11 @@ jobs:
       - name: Toolchain
         run: swift --version
 
+      - name: Lint (swift-format)
+        run: |
+          brew install swift-format
+          swift-format lint --strict --recursive --configuration .swift-format Sources Tests
+
       - name: Build (release)
         run: swift build -c release
 

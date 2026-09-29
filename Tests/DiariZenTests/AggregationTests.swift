@@ -5,10 +5,10 @@ final class PowersetTests: XCTestCase {
     func testMappingMatchesPyannoteOrder() {
         let ps = Powerset(numSpeakers: 4, maxSetSize: 2)
         XCTAssertEqual(ps.numPowersetClasses, 11)
-        XCTAssertEqual(ps.mapping[0], [0, 0, 0, 0])   // silence
-        XCTAssertEqual(ps.mapping[1], [1, 0, 0, 0])   // singles
+        XCTAssertEqual(ps.mapping[0], [0, 0, 0, 0])  // silence
+        XCTAssertEqual(ps.mapping[1], [1, 0, 0, 0])  // singles
         XCTAssertEqual(ps.mapping[4], [0, 0, 0, 1])
-        XCTAssertEqual(ps.mapping[5], [1, 1, 0, 0])   // first pair (0,1)
+        XCTAssertEqual(ps.mapping[5], [1, 1, 0, 0])  // first pair (0,1)
         XCTAssertEqual(ps.mapping[10], [0, 0, 1, 1])  // last pair (2,3)
     }
 

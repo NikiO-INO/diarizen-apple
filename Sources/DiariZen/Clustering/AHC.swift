@@ -29,7 +29,7 @@ public enum AHC {
         var merges = [Merge]()
         merges.reserveCapacity(n - 1)
 
-        var nn = [Int](repeating: -1, count: n)          // nearest active index
+        var nn = [Int](repeating: -1, count: n)  // nearest active index
         var nnDist = [Double](repeating: .infinity, count: n)
 
         func dist(_ a: Int, _ b: Int) -> Double { euclidean(centroid[a], centroid[b]) }
@@ -62,9 +62,9 @@ public enum AHC {
             recomputeNN(i)
             for k in 0..<n where active[k] && k != i {
                 if nn[k] == i || nn[k] == j {
-                    recomputeNN(k)                       // its NN was one of the merged pair
+                    recomputeNN(k)  // its NN was one of the merged pair
                 } else {
-                    let d = dist(k, i)                   // merged centroid may now be closer
+                    let d = dist(k, i)  // merged centroid may now be closer
                     if d < nnDist[k] { nnDist[k] = d; nn[k] = i }
                 }
             }
@@ -78,7 +78,7 @@ public enum AHC {
     public static func fclusterDistance(_ merges: [Merge], n: Int, threshold: Double) -> [Int] {
         guard n > 1 else { return [Int](repeating: 0, count: n) }
         let numNodes = 2 * n - 1
-        var coph = [Double](repeating: 0, count: numNodes)   // leaves = 0
+        var coph = [Double](repeating: 0, count: numNodes)  // leaves = 0
         var left = [Int](repeating: -1, count: numNodes)
         var right = [Int](repeating: -1, count: numNodes)
         for (k, m) in merges.enumerated() {
@@ -95,8 +95,11 @@ public enum AHC {
         }
         func cut(_ node: Int) {
             if node < n { labels[node] = nextLabel; nextLabel += 1; return }
-            if coph[node] <= threshold { assignAll(node, nextLabel); nextLabel += 1 }
-            else { cut(left[node]); cut(right[node]) }
+            if coph[node] <= threshold {
+                assignAll(node, nextLabel); nextLabel += 1
+            } else {
+                cut(left[node]); cut(right[node])
+            }
         }
         cut(numNodes - 1)
         return labels

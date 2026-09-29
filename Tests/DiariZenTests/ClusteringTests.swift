@@ -45,8 +45,8 @@ final class ReconstructionTests: XCTestCase {
         let turns = Reconstruction.binarize(scores, frame: frame).sorted { $0.start < $1.start }
         XCTAssertEqual(turns.count, 2)
         XCTAssertEqual(turns[0].start, 0, accuracy: 1e-9)
-        XCTAssertEqual(turns[0].end, 2, accuracy: 1e-9)     // ends at first inactive frame
+        XCTAssertEqual(turns[0].end, 2, accuracy: 1e-9)  // ends at first inactive frame
         XCTAssertEqual(turns[1].start, 3, accuracy: 1e-9)
-        XCTAssertEqual(turns[1].end, 3, accuracy: 1e-9)     // active at end
+        XCTAssertEqual(turns[1].end, 3, accuracy: 1e-9)  // active at end
     }
 }

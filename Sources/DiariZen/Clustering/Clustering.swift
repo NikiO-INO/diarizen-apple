@@ -11,7 +11,7 @@ public struct VBxClustering {
     public var maxIters: Int
     public var minFramesRatio: Double
     public var constrained: Bool
-    public var spEps: Double   // keep VBx clusters with prior > spEps
+    public var spEps: Double  // keep VBx clusters with prior > spEps
 
     public init(
         plda: PLDA, fa: Double = 0.07, fb: Double = 0.8, ahcThreshold: Double = 0.6,
@@ -38,14 +38,17 @@ public struct VBxClustering {
         }
 
         // 2. AHC (centroid linkage on L2-normalized embeddings, distance cut).
-        let normed = trainEmb.map { row -> [Double] in var v = row.map(Double.init); l2Normalize(&v); return v }
+        let normed = trainEmb.map { row -> [Double] in
+            var v = row.map(Double.init); l2Normalize(&v); return v
+        }
         let merges = AHC.centroidLinkage(normed)
         let ahc = renumber(AHC.fclusterDistance(merges, n: trainEmb.count, threshold: ahcThreshold))
 
         // 3. PLDA transform + VBx.
         let fea = plda.transform(trainEmb)
-        let (gamma, pi) = VBx.cluster(ahcInit: ahc, fea: fea, phi: plda.phi,
-                                      Fa: fa, Fb: fb, maxIters: maxIters)
+        let (gamma, pi) = VBx.cluster(
+            ahcInit: ahc, fea: fea, phi: plda.phi,
+            Fa: fa, Fb: fb, maxIters: maxIters)
 
         // 4. centroids = q[:, sp>eps]ᵀ · train_embeddings  (raw 256-d, unnormalized).
         let keptCols = (0..<pi.count).filter { pi[$0] > spEps }
@@ -105,7 +108,7 @@ public struct VBxClustering {
                     total += 1
                     if singleActive[f] { clean += 1 }
                 }
-                if total > 0 && clean >= minFrames {   // active & enough clean frames
+                if total > 0 && clean >= minFrames {  // active & enough clean frames
                     train.append(embeddings[c][s]); cIdx.append(c); sIdx.append(s)
                 }
             }

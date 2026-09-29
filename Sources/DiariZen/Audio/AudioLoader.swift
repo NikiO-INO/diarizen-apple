@@ -17,7 +17,8 @@ public enum AudioLoader {
         let inFormat = file.processingFormat  // always non-interleaved float32
 
         guard let inBuf = AVAudioPCMBuffer(pcmFormat: inFormat, frameCapacity: AVAudioFrameCount(file.length)),
-              file.length > 0 else {
+            file.length > 0
+        else {
             return []
         }
         do {
@@ -28,14 +29,17 @@ public enum AudioLoader {
 
         // Fast path: already mono at the target rate — return the channel directly.
         if inFormat.sampleRate == sampleRate, inFormat.channelCount == 1,
-           let ch = inBuf.floatChannelData {
+            let ch = inBuf.floatChannelData
+        {
             return Array(UnsafeBufferPointer(start: ch[0], count: Int(inBuf.frameLength)))
         }
 
         // Otherwise resample / downmix to mono float32 at `sampleRate`.
-        guard let outFormat = AVAudioFormat(
-            commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 1, interleaved: false
-        ), let converter = AVAudioConverter(from: inFormat, to: outFormat) else {
+        guard
+            let outFormat = AVAudioFormat(
+                commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 1, interleaved: false
+            ), let converter = AVAudioConverter(from: inFormat, to: outFormat)
+        else {
             throw DiariZenError.inference("cannot create audio converter")
         }
 
