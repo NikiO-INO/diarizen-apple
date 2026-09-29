@@ -45,13 +45,16 @@ offline, as a self-contained Swift binary plus CoreML model files.
 
 ## Highlights
 
-- Real-time factor of 0.037 on an M2 Pro, about 16 times faster than the PyTorch
-  CPU pipeline and a little faster than PyTorch on MPS, using about 300 MB of
-  memory (roughly a 25th of PyTorch CPU and a sixth of PyTorch MPS).
-- No speaker-count cap. On the full AMI EN2002a meeting the base model scores
-  21.16% DER and the large model 17.50%.
-- Self-contained at inference: one Swift binary and a few CoreML files, with no
-  torch, pyannote, or Python runtime.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/highlights-dark.svg">
+    <img alt="Real-time factor 0.037 (about 16x faster than PyTorch CPU), about 300 MB peak memory (Python-free at inference), 17.50% DER on AMI EN2002a with the large model, and no speaker cap." src="assets/highlights-light.svg" width="100%">
+  </picture>
+</p>
+
+Numbers on an M2 Pro; on AMI EN2002a the base model scores 21.16% DER and the
+large model 17.50%. Beyond the numbers:
+
 - Validated stage by stage against the original pipeline, from the mel frontend
   through clustering, with tolerances recorded in `validation/`.
 - One binary for both checkpoints. The powerset geometry is read from the model,
@@ -139,6 +142,13 @@ SPEAKER meeting 1 0.005 0.780 <NA> <NA> speaker_2 <NA> <NA>
 SPEAKER meeting 1 0.745 12.820 <NA> <NA> speaker_1 <NA> <NA>
 SPEAKER meeting 1 5.745 0.660 <NA> <NA> speaker_0 <NA> <NA>
 ```
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/timeline-dark.svg">
+    <img alt="The example turns as a timeline: three speaker lanes over 30 seconds, with overlapping speech aligned vertically." src="assets/timeline-light.svg" width="100%">
+  </picture>
+</p>
 
 ## Models and licensing
 
