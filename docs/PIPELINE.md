@@ -78,3 +78,19 @@ picks `selected_channel = 0`. Export/trace with `(1, 1, 256000)`.
 - **Structured pruning** (`hardconcrete`, `pruning_utils`) is baked into the
   weights at inference — should be a plain forward, but verify no train-only
   masking path is hit in eval().
+
+## As built (the shipped Swift pipeline)
+
+The port implements the map above natively. Each stage and where it runs:
+
+| Stage | Runtime | Notes |
+|---|---|---|
+| Segmentation (WavLM + Conformer, powerset) | CoreML, GPU | fixed 16 s chunk `(1, 1, 256000)` to `(1, frames, classes)` |
+| Powerset decode + median filter | Swift | base: 11 classes (max 2 speakers per frame); large-s80-md-v2: 16 classes (max 4) |
+| Aggregation (sliding window, stitch) | Swift | 16 s window, 1.6 s step |
+| Embedding (Kaldi fbank + ResNet34) | Swift + CoreML | fbank in vDSP; ResNet in CoreML, batched (RangeDim) |
+| VBx clustering + assignment | Swift | PLDA + Bayesian HMM (loopProb 0), O(n^2) AHC init, Hungarian |
+| Reconstruction | Swift | pyannote reconstruct, aggregate, Binarize, RTTM |
+
+The powerset geometry is read from the segmentation output width, so base and
+`large-s80-md-v2` use the same binary with no code change.

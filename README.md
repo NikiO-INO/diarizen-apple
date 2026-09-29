@@ -31,6 +31,7 @@ offline, as a self-contained Swift binary plus CoreML model files.
 - [How it works](#how-it-works)
 - [Requirements](#requirements)
 - [Quick start](#quick-start)
+- [Example](#example)
 - [Models and licensing](#models-and-licensing)
 - [Accuracy and benchmarks](#accuracy-and-benchmarks)
 - [Limitations](#limitations)
@@ -121,6 +122,23 @@ diarizen-cli <audio.wav> --models <dir> [--compute-units cpu-gpu|cpu|all|cpu-ane
 The default compute policy is `cpu-gpu`. The `all` and `cpu-ane` policies route
 to the Neural Engine, which deadlocks or runs far slower on this model, so the
 CLI warns against them (see [Limitations](#limitations)).
+
+## Example
+
+```bash
+swift run -c release diarizen-cli meeting.wav --models build/coreml
+```
+
+The output is standard RTTM, one line per speech turn: start and duration in
+seconds, then a speaker label. Overlapping speech appears as separate lines with
+overlapping times.
+
+```
+SPEAKER meeting 1 0.005 2.620 <NA> <NA> speaker_0 <NA> <NA>
+SPEAKER meeting 1 0.005 0.780 <NA> <NA> speaker_2 <NA> <NA>
+SPEAKER meeting 1 0.745 12.820 <NA> <NA> speaker_1 <NA> <NA>
+SPEAKER meeting 1 5.745 0.660 <NA> <NA> speaker_0 <NA> <NA>
+```
 
 ## Models and licensing
 

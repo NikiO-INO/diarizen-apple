@@ -36,3 +36,32 @@ The **DiariZen code** is MIT; **this repository's code** is MIT (see LICENSE).
 If a commercially-usable diarizer is ever needed, a different (permissively
 licensed) model would have to be substituted — the pipeline and wrappers here are
 model-agnostic by design.
+
+## Exporting the models to CoreML
+
+Export the three artifacts a checkpoint needs into one directory. base and large
+each get their own directory.
+
+```bash
+# base-s80-md -> build/coreml/
+python conversion/export_coreml.py           --model BUT-FIT/diarizen-wavlm-base-s80-md --out build/coreml
+python conversion/export_embedding_coreml.py --model BUT-FIT/diarizen-wavlm-base-s80-md --out build/coreml
+python conversion/export_plda.py             --model BUT-FIT/diarizen-wavlm-base-s80-md --out build/coreml/plda_transform.json
+
+# large-s80-md-v2 -> build/coreml-large/
+python conversion/export_coreml.py           --model BUT-FIT/diarizen-wavlm-large-s80-md-v2 --out build/coreml-large
+python conversion/export_embedding_coreml.py --model BUT-FIT/diarizen-wavlm-large-s80-md-v2 --out build/coreml-large
+python conversion/export_plda.py             --model BUT-FIT/diarizen-wavlm-large-s80-md-v2 --out build/coreml-large/plda_transform.json
+```
+
+Each directory ends up with:
+
+```
+build/coreml/
+├── Segmentation.mlpackage
+├── Embedding.mlpackage
+└── plda_transform.json
+```
+
+Point the CLI at a directory with `--models build/coreml`. `conversion/inspect_model.py`
+prints a checkpoint's geometry (powerset classes, frame count) before you export.
