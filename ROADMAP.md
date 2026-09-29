@@ -115,10 +115,15 @@ wrappers once the pipeline is proven.
 - [ ] Deferred (low value): ORT full-pipeline (only seg is in ONNX; not a production target).
 - **Gate met:** reproducible benchmark numbers + honest claims; ANE understood, not overclaimed.
 
-## Phase 5 — meetlify integration
-- [ ] Add a `diarizen` diarization engine to meetlify (sidecar over `diarizen-cli`,
-      RTTM parsing already exists via `turns_from_rttm`).
-- **Gate:** selectable in Settings, A/B-able against Nemotron/FluidAudio.
+## Phase 5 — meetlify integration  ✅ DONE
+- [x] Added a `diarizen` diarization engine to meetlify (sidecar over `diarizen-cli`,
+      RTTM parsing via `turns_from_rttm`). Selectable in Settings, A/B-able against
+      Nemotron/FluidAudio. `scripts/build-diarizen.sh [base|large]` builds the binary
+      and installs the CoreML models into the app-data dir.
+- [x] Shipped in a production build and validated on a real 22-speaker town hall:
+      DiariZen found all 22 distinct speakers (no cap), where the capped and
+      merge-prone engines could not.
+- **Gate met:** selectable, A/B-able, proven on a hard multi-speaker meeting.
 
 ## Phase 6 — upgrade + open-source
 - [x] **Model switching is checkpoint-agnostic**: `--models <dir>` selects the export,
@@ -143,7 +148,10 @@ wrappers once the pipeline is proven.
       (`normalize_waveform=True` on large also breaks the ONNX export path — cosmetic.)
       **base-s80-md stays the tensor-faithful default** (30 s DER 0.495%; AMI 21.16% vs
       pyannote 21.10%); large-v2 is the optional, more-accurate model.
-- [ ] Polish docs, CONTRIBUTING, CI; flip the repo public.
+- [x] Polished docs (README rewrite with banner/badges/Mermaid, honest results),
+      `CONTRIBUTING.md`, `CHANGELOG.md`, and GitHub Actions CI (`swift build -c release`
+      + `swift test`, 17 tests, no weights needed).
+- [ ] Flip the repo public (deferred; done on request).
 
 ## Later (not now)
 - MLX experimental backend (re-implementation, weight mapping, revalidation).

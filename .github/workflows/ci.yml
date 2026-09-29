@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Model weights are CC BY-NC 4.0 and are never committed (see MODELS.md), so CI
+# cannot run the model parity or benchmark checks. It builds the Swift runtime
+# and runs the unit tests, which are pure Swift and CoreML-decode logic with no
+# model files. The release build is intentional: it catches optimizer-only
+# miscompiles that a debug build hides.
+jobs:
+  build-test:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: swift --version
+
+      - name: Build (release)
+        run: swift build -c release
+
+      - name: Test
+        run: swift test

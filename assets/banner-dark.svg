@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" role="img" aria-label="diarizen-apple: on-device speaker diarization for Apple Silicon">
+  <rect x="0" y="0" width="1200" height="300" rx="16" fill="#0d1117"/>
+  <rect x="0.5" y="0.5" width="1199" height="299" rx="16" fill="none" stroke="#30363d" stroke-width="1"/>
+  <text x="72" y="134" font-family="ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace" font-size="66" font-weight="700" fill="#e6edf3">diarizen<tspan fill="#2dd4bf">-apple</tspan></text>
+  <text x="74" y="180" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="25" fill="#8b949e">On-device speaker diarization for Apple Silicon</text>
+  <g>
+    <rect x="72"   y="212" width="184" height="22" rx="5" fill="#2dd4bf"/>
+    <rect x="262"  y="212" width="120" height="22" rx="5" fill="#fbbf24"/>
+    <rect x="388"  y="212" width="96"  height="22" rx="5" fill="#fb7185"/>
+    <rect x="490"  y="212" width="206" height="22" rx="5" fill="#a78bfa"/>
+    <rect x="702"  y="212" width="104" height="22" rx="5" fill="#2dd4bf"/>
+    <rect x="812"  y="212" width="150" height="22" rx="5" fill="#fbbf24"/>
+    <rect x="968"  y="212" width="96"  height="22" rx="5" fill="#fb7185"/>
+    <rect x="1070" y="212" width="58"  height="22" rx="5" fill="#a78bfa"/>
+  </g>
+</svg>
