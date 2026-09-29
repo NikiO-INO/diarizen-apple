@@ -104,7 +104,10 @@ wrappers once the pipeline is proven.
 - [x] `benchmarks/`: RTF / latency / peak memory across **native CoreML (CPU, CPU+GPU,
       CPU+ANE) vs PyTorch (CPU, MPS)** on M2 Pro. Native CPU+GPU: **RTF 0.055, 226 MB**.
       ~11× faster / ~33× lighter than PyTorch-CPU; a speed wash with PyTorch-MPS
-      (0.048) but ~8× lighter and Python-free. `benchmarks/{run.sh,bench_python.py,RESULTS.md}`;
+      (0.048) but ~8× lighter and Python-free (embedding batching, a later commit,
+      then improved this to **RTF 0.037** at ~298 MB: ~16× faster / ~25× lighter than
+      PyTorch-CPU, and faster than MPS; `RESULTS.md` has the current table).
+      `benchmarks/{run.sh,bench_python.py,RESULTS.md}`;
       per-stage timing via `Pipeline.timings`.
 - [x] **ANE investigated (deadlock resolved):** `.all` (CPU+GPU+ANE) genuinely deadlocks
       (partitioning conflict — avoid). `.cpuAndNeuralEngine` works and is *accurate*

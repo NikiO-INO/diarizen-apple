@@ -97,7 +97,7 @@ isn't a recommended path — see below.)
   does not. Getting it onto the ANE would need re-architecting the model in "ANE
   principles" form (4-D tensors, conv2d projections instead of linear, split attention
   heads — Apple's *Deploying Transformers on the Apple Neural Engine*), i.e. a model
-  rewrite + weight re-map, not a conversion flag. Given CPU+GPU already hits RTF 0.055,
+  rewrite + weight re-map, not a conversion flag. Given CPU+GPU already hits RTF 0.037,
   that optimization is low-ROI and left as possible future work.
 - **Embedding dominates** (~80 % of the time): 40 WeSpeaker ResNet CoreML predicts +
   the Swift kaldi fbank per 30 s (one per chunk × speaker). Clustering + reconstruction
