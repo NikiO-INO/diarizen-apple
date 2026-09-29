@@ -59,15 +59,12 @@ offline, as a self-contained Swift binary plus CoreML model files.
 
 ## How it works
 
-```mermaid
-flowchart LR
-    A["audio<br/>16 kHz mono"] --> B["WavLM + Conformer<br/>segmentation<br/>(CoreML, GPU)"]
-    B --> C["sliding-window aggregation<br/>+ powerset decode<br/>(Swift)"]
-    C --> D["speaker embeddings<br/>Kaldi fbank (Swift)<br/>+ ResNet34 (CoreML)"]
-    D --> E["VBx clustering<br/>+ assignment<br/>(Swift)"]
-    E --> F["reconstruction<br/>(Swift)"]
-    F --> G["RTTM"]
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/pipeline-dark.svg">
+    <img alt="Pipeline: audio to RTTM. The neural stages (segmentation, embeddings) run in CoreML on the GPU; aggregation, clustering, and reconstruction run in native Swift on the CPU." src="assets/pipeline-light.svg" width="720">
+  </picture>
+</p>
 
 Segmentation labels who speaks in each short window, including overlaps, using a
 powerset head. Aggregation slides that window across the audio and stitches the
