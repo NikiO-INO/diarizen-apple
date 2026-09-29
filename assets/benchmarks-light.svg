@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 602" width="920" height="602" role="img" aria-label="diarizen-apple benchmarks">
+<rect x="0" y="0" width="920" height="602" fill="#fcfcfb"/>
+<text x="0" y="30" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="21" font-weight="700" fill="#0b0b0b">Benchmarks</text>
+<text x="0" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#898781">Apple M2 Pro · lower is better</text>
+<rect x="620" y="18" width="13" height="13" rx="3" fill="#2a78d6"/>
+<text x="640" y="29" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#52514e">native CoreML</text>
+<rect x="770" y="18" width="13" height="13" rx="3" fill="#eb6834"/>
+<text x="790" y="29" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#52514e">PyTorch</text>
+<text x="0" y="84" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#0b0b0b">Real-time factor</text>
+<line x1="224" y1="92" x2="224" y2="222" stroke="#d7d6cf" stroke-width="1"/>
+<text x="212" y="118" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" fill="#52514e">CoreML CPU+GPU</text>
+<rect x="224" y="104" width="37.6" height="18" rx="4" fill="#2a78d6"/>
+<text x="269.6" y="118" font-family="ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="700" fill="#0b0b0b">0.037</text>
+<text x="212" y="152" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" fill="#52514e">PyTorch MPS</text>
+<rect x="224" y="138" width="48.8" height="18" rx="4" fill="#eb6834"/>
+<text x="280.8" y="152" font-family="ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="500" fill="#0b0b0b">0.048</text>
+<text x="212" y="186" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" fill="#52514e">CoreML CPU</text>
+<rect x="224" y="172" width="57.9" height="18" rx="4" fill="#2a78d6"/>
+<text x="289.9" y="186" font-family="ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="500" fill="#0b0b0b">0.057</text>
+<text x="212" y="220" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" fill="#52514e">PyTorch CPU</text>
+<rect x="224" y="206" width="612.0" height="18" rx="4" fill="#eb6834"/>
+<text x="844.0" y="220" font-family="ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="500" fill="#0b0b0b">0.602</text>
+<text x="0" y="266" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#0b0b0b">Peak memory (MB)</text>
+<line x1="224" y1="274" x2="224" y2="404" stroke="#d7d6cf" stroke-width="1"/>
+<text x="212" y="300" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" fill="#52514e">CoreML CPU+GPU</text>
+<rect x="224" y="286" width="24.4" height="18" rx="4" fill="#2a78d6"/>
+<text x="256.4" y="300" font-family="ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="700" fill="#0b0b0b">298</text>
+<text x="212" y="334" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" fill="#52514e">CoreML CPU</text>
+<rect x="224" y="320" width="86.0" height="18" rx="4" fill="#2a78d6"/>
+<text x="318.0" y="334" font-family="ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="500" fill="#0b0b0b">1,050</text>
+<text x="212" y="368" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" fill="#52514e">PyTorch MPS</text>
+<rect x="224" y="354" width="150.0" height="18" rx="4" fill="#eb6834"/>
+<text x="382.0" y="368" font-family="ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="500" fill="#0b0b0b">1,832</text>
+<text x="212" y="402" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" fill="#52514e">PyTorch CPU</text>
+<rect x="224" y="388" width="612.0" height="18" rx="4" fill="#eb6834"/>
+<text x="844.0" y="402" font-family="ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="500" fill="#0b0b0b">7,474</text>
+<text x="0" y="448" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#0b0b0b">Diarization error rate, % (AMI EN2002a)</text>
+<line x1="224" y1="456" x2="224" y2="552" stroke="#d7d6cf" stroke-width="1"/>
+<text x="212" y="482" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" fill="#52514e">large-s80-md-v2</text>
+<rect x="224" y="468" width="506.1" height="18" rx="4" fill="#2a78d6"/>
+<text x="738.1" y="482" font-family="ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="700" fill="#0b0b0b">17.50%</text>
+<text x="212" y="516" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" fill="#52514e">DiariZen base (PyTorch)</text>
+<rect x="224" y="502" width="610.3" height="18" rx="4" fill="#eb6834"/>
+<text x="842.3" y="516" font-family="ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="500" fill="#0b0b0b">21.10%</text>
+<text x="212" y="550" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" fill="#52514e">base-s80-md</text>
+<rect x="224" y="536" width="612.0" height="18" rx="4" fill="#2a78d6"/>
+<text x="844.0" y="550" font-family="ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="500" fill="#0b0b0b">21.16%</text>
+<text x="0" y="594" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#898781">Speed and memory on a 30 s clip; DER on the full AMI EN2002a meeting. Reproduce: benchmarks/run.sh</text>
+</svg>
