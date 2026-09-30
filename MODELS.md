@@ -39,8 +39,9 @@ model-agnostic by design.
 
 ## Exporting the models to CoreML
 
-Export the three artifacts a checkpoint needs into one directory. base and large
-each get their own directory.
+The quickest path is `scripts/export-models.sh base` (or `large`), which runs the
+three steps below into the right directory. To do it by hand, export the three
+artifacts a checkpoint needs into one directory (base and large each get their own).
 
 ```bash
 # base-s80-md -> build/coreml/
