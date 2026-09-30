@@ -4,69 +4,72 @@
     python benchmarks/plot_vox.py
 
 Per-file DER on the 31 VoxConverse files with >= 12 speakers, scored with the
-standard 0.25 s collar (validation/eval_corpus.py --dir build/vox --collar 0.25).
-Shows that the port keeps DER low across 12-21 speakers and never caps the count.
+standard 0.25 s collar (validation/eval_corpus.py --dir build/vox --collar 0.25),
+base and large. Shows the port keeps DER low across 12-21 speakers and never caps
+the count.
 """
 from pathlib import Path
 
 SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 MONO = "ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace"
 
-# (id, ref_spk, hyp_spk, DER %)
+# (id, ref_spk, base DER %, large DER %)
 DATA = [
-    ("nitgx", 21, 23, 6.39), ("kdfqk", 20, 17, 7.58), ("vzuru", 19, 18, 2.58),
-    ("jeymh", 18, 17, 14.57), ("vmaiq", 17, 14, 5.19), ("qajyo", 17, 15, 6.23),
-    ("uqxlg", 15, 11, 3.25), ("ldnro", 15, 13, 3.02), ("lbfnx", 15, 15, 2.76),
-    ("kajfh", 15, 14, 11.67), ("eqsta", 15, 9, 18.31), ("diysk", 15, 11, 19.40),
-    ("cjfer", 15, 15, 6.56), ("byapz", 15, 12, 8.58), ("usqam", 14, 13, 5.34),
-    ("qxana", 14, 12, 7.01), ("qeejz", 14, 14, 9.90), ("vncid", 13, 12, 4.50),
-    ("pwnsw", 13, 8, 8.47), ("jbowg", 13, 9, 7.99), ("gtnjb", 13, 11, 2.97),
-    ("aggyz", 13, 13, 1.51), ("zzyyo", 12, 10, 8.04), ("wewoz", 12, 11, 4.62),
-    ("vtzqw", 12, 9, 10.10), ("mqxsf", 12, 12, 6.90), ("mkhie", 12, 12, 6.27),
-    ("ibrnm", 12, 12, 5.45), ("heolf", 12, 12, 4.97), ("epdpg", 12, 11, 3.71),
-    ("aorju", 12, 10, 7.27),
+    ("nitgx", 21, 6.39, 5.99), ("kdfqk", 20, 7.58, 7.87), ("vzuru", 19, 2.58, 3.46),
+    ("jeymh", 18, 14.57, 14.56), ("vmaiq", 17, 5.19, 4.59), ("qajyo", 17, 6.23, 5.45),
+    ("uqxlg", 15, 3.25, 4.36), ("ldnro", 15, 3.02, 2.02), ("lbfnx", 15, 2.76, 2.64),
+    ("kajfh", 15, 11.67, 8.33), ("eqsta", 15, 18.31, 17.11), ("diysk", 15, 19.40, 16.71),
+    ("cjfer", 15, 6.56, 7.52), ("byapz", 15, 8.58, 7.49), ("usqam", 14, 5.34, 5.97),
+    ("qxana", 14, 7.01, 3.47), ("qeejz", 14, 9.90, 8.67), ("vncid", 13, 4.50, 4.73),
+    ("pwnsw", 13, 8.47, 7.69), ("jbowg", 13, 7.99, 7.84), ("gtnjb", 13, 2.97, 2.29),
+    ("aggyz", 13, 1.51, 0.44), ("zzyyo", 12, 8.04, 7.49), ("wewoz", 12, 4.62, 4.51),
+    ("vtzqw", 12, 10.10, 8.28), ("mqxsf", 12, 6.90, 5.66), ("mkhie", 12, 6.27, 4.72),
+    ("ibrnm", 12, 5.45, 3.68), ("heolf", 12, 4.97, 4.19), ("epdpg", 12, 3.71, 2.84),
+    ("aorju", 12, 7.27, 4.66),
 ]
-CORPUS = 7.24
+BASE_CORPUS, LARGE_CORPUS = 7.24, 6.35
 AXIS_MAX = 20.0
 
 THEME = {
     "light": {"surface": "#fcfcfb", "ink": "#0b0b0b", "sub": "#52514e",
-              "muted": "#898781", "grid": "#e1e0d9", "bar": "#2a78d6"},
+              "muted": "#898781", "grid": "#e1e0d9", "base": "#2a78d6", "large": "#1baf7a"},
     "dark": {"surface": "#1a1a19", "ink": "#ffffff", "sub": "#c3c2b7",
-             "muted": "#898781", "grid": "#2c2c2a", "bar": "#3987e5"},
+             "muted": "#898781", "grid": "#2c2c2a", "base": "#3987e5", "large": "#199e70"},
 }
 
 W = 920
 LM, RM = 150, 46
 BAR_AREA = W - LM - RM
-ROW_H = 18
-BAR_H = 12
-TOP = 76
+ROW_H = 21
+BAR_H = 8
+TOP = 80
 
 
 def render(mode):
     c = THEME[mode]
-    rows = sorted(DATA, key=lambda r: (-r[1], r[3]))
+    rows = sorted(DATA, key=lambda r: (-r[1], r[2]))
     h = TOP + len(rows) * ROW_H + 26
     px = BAR_AREA / AXIS_MAX
     o = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {h}" width="{W}" '
-         f'height="{h}" role="img" aria-label="VoxConverse per-file DER on 12 to 21 '
-         f'speaker files; corpus 7.24%, no speaker cap">']
+         f'height="{h}" role="img" aria-label="VoxConverse per-file DER, base vs large, '
+         f'on 12 to 21 speaker files; corpus base 7.24%, large 6.35%, no cap">']
     o.append(f'<rect x="0" y="0" width="{W}" height="{h}" fill="{c["surface"]}"/>')
     o.append(f'<text x="0" y="24" font-family="{SANS}" font-size="18" font-weight="700" '
              f'fill="{c["ink"]}">VoxConverse: DER on 12-21 speaker files</text>')
     o.append(f'<text x="0" y="45" font-family="{SANS}" font-size="12.5" fill="{c["sub"]}">'
-             f'in the wild, collar 0.25s · corpus DER 7.24% · the base model finds '
+             f'in the wild, collar 0.25s · corpus DER base 7.24%, large 6.35% · finds '
              f'8-23 speakers, never capped at 8</text>')
-    # corpus reference line label (legend-ish)
-    o.append(f'<text x="{W}" y="24" text-anchor="end" font-family="{SANS}" font-size="12.5" '
-             f'fill="{c["muted"]}">dashed = corpus avg 7.24%</text>')
-    col_hdr_y = TOP - 10
-    o.append(f'<text x="8" y="{col_hdr_y}" font-family="{SANS}" font-size="10.5" '
-             f'fill="{c["muted"]}">file</text>')
-    o.append(f'<text x="{LM-10}" y="{col_hdr_y}" text-anchor="end" font-family="{SANS}" '
-             f'font-size="10.5" fill="{c["muted"]}">spk</text>')
-    plot_bottom = TOP + len(rows) * ROW_H - 4
+    # legend
+    lx = W - 232
+    o.append(f'<rect x="{lx}" y="14" width="12" height="12" rx="3" fill="{c["base"]}"/>')
+    o.append(f'<text x="{lx+18}" y="24" font-family="{SANS}" font-size="12.5" fill="{c["sub"]}">base</text>')
+    lx2 = lx + 74
+    o.append(f'<rect x="{lx2}" y="14" width="12" height="12" rx="3" fill="{c["large"]}"/>')
+    o.append(f'<text x="{lx2+18}" y="24" font-family="{SANS}" font-size="12.5" fill="{c["sub"]}">large-v2</text>')
+    # column headers
+    o.append(f'<text x="8" y="{TOP-10}" font-family="{SANS}" font-size="10.5" fill="{c["muted"]}">file</text>')
+    o.append(f'<text x="{LM-10}" y="{TOP-10}" text-anchor="end" font-family="{SANS}" font-size="10.5" fill="{c["muted"]}">spk</text>')
+    plot_bottom = TOP + len(rows) * ROW_H - 3
     # gridlines
     t = 0
     while t <= AXIS_MAX:
@@ -76,23 +79,22 @@ def render(mode):
         o.append(f'<text x="{gx:.1f}" y="{plot_bottom+16}" text-anchor="middle" '
                  f'font-family="{SANS}" font-size="10" fill="{c["muted"]}">{int(t)}%</text>')
         t += 5
-    # corpus avg dashed line
-    cx = LM + CORPUS * px
-    o.append(f'<line x1="{cx:.1f}" y1="{TOP-4}" x2="{cx:.1f}" y2="{plot_bottom}" '
-             f'stroke="{c["bar"]}" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.8"/>')
+    # corpus average dashed lines, labeled at top
+    for val, key, lab in ((BASE_CORPUS, "base", f"base {BASE_CORPUS}"), (LARGE_CORPUS, "large", f"large {LARGE_CORPUS}")):
+        rx = LM + val * px
+        o.append(f'<line x1="{rx:.1f}" y1="{TOP-4}" x2="{rx:.1f}" y2="{plot_bottom}" '
+                 f'stroke="{c[key]}" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.85"/>')
     # rows
-    for i, (fid, rspk, hspk, der) in enumerate(rows):
+    for i, (fid, rspk, b, l) in enumerate(rows):
         ry = TOP + i * ROW_H
-        o.append(f'<text x="8" y="{ry+ROW_H-5}" font-family="{MONO}" font-size="11" '
-                 f'fill="{c["sub"]}">{fid}</text>')
-        o.append(f'<text x="{LM-10}" y="{ry+ROW_H-5}" text-anchor="end" font-family="{MONO}" '
-                 f'font-size="11" fill="{c["muted"]}">{rspk}</text>')
-        by = ry + (ROW_H - BAR_H) // 2
-        bw = max(2, der * px)
-        o.append(f'<rect x="{LM}" y="{by}" width="{bw:.1f}" height="{BAR_H}" rx="3" '
-                 f'fill="{c["bar"]}"/>')
-        o.append(f'<text x="{LM+bw+5:.1f}" y="{by+BAR_H-2}" font-family="{MONO}" '
-                 f'font-size="10" fill="{c["sub"]}">{der:.1f}</text>')
+        o.append(f'<text x="8" y="{ry+14}" font-family="{MONO}" font-size="10.5" fill="{c["sub"]}">{fid}</text>')
+        o.append(f'<text x="{LM-10}" y="{ry+14}" text-anchor="end" font-family="{MONO}" font-size="10.5" fill="{c["muted"]}">{rspk}</text>')
+        for val, key, dy in ((b, "base", 2), (l, "large", 2 + BAR_H + 1)):
+            bw = max(2, val * px)
+            o.append(f'<rect x="{LM}" y="{ry+dy}" width="{bw:.1f}" height="{BAR_H}" rx="2.5" fill="{c[key]}"/>')
+    # x-axis title
+    o.append(f'<text x="{LM+BAR_AREA/2}" y="{h-8}" text-anchor="middle" font-family="{SANS}" '
+             f'font-size="11" fill="{c["muted"]}">diarization error rate (lower is better) · sorted by speaker count</text>')
     return "\n".join(o) + "\n</svg>\n"
 
 
