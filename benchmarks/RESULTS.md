@@ -109,6 +109,11 @@ isn't a recommended path — see below.)
 - **Not benchmarked:** ONNX Runtime (CPU / CoreML EP) *full pipeline* — only
   segmentation was ported to ONNX (the reference backend), and ORT is not a production
   target here, so a full ORT pipeline would duplicate the CoreML work for little value.
-- **Energy:** `benchmarks/energy.sh` (needs `sudo` for `powermetrics`) samples system-wide
-  CPU/GPU/ANE power while the pipeline loops — indicative, not per-process. Run it to
-  confirm ANE power stays ~0 under the default `.cpuAndGPU` policy.
+- **Energy (measured on M2 Pro, system-wide while the pipeline loops, machine idle).**
+  Under the default `.cpuAndGPU`: **ANE 0 mW** throughout, GPU ~18 W, CPU ~1.6 W,
+  ~19-20 W combined. The pipeline is GPU-bound and the ANE is idle, matching the
+  compute-plan (643/643 on the GPU). Forcing `.cpuAndNeuralEngine` keeps **ANE at
+  0 mW** (CoreML still refuses to place this model on the ANE) while CPU jumps to
+  ~6-11 W and combined power rises to ~22-32 W, so it is both slower and less
+  power-efficient. Reproduce with `sudo benchmarks/energy.sh <wav> [cpu-gpu|cpu-ane]`
+  (needs `sudo` for `powermetrics`; figures are indicative, not per-process).

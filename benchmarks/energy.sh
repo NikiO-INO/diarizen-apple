@@ -17,7 +17,7 @@ UNITS="${2:-cpu-gpu}"
 if [[ "$UNITS" == "cpu-gpu" ]]; then UNIT_ARG=(); else UNIT_ARG=(--compute-units "$UNITS"); fi
 
 echo "loop: diarizen-cli $WAV (units=$UNITS) ×200 in background"
-.build/release/diarizen-cli "$WAV" --models build/coreml "${UNIT_ARG[@]}" --benchmark 200 >/dev/null 2>&1 &
+.build/release/diarizen-cli "$WAV" --models build/coreml "${UNIT_ARG[@]+"${UNIT_ARG[@]}"}" --benchmark 200 >/dev/null 2>&1 &
 LOOP_PID=$!
 
 # ~10 s of samples at 500 ms.
