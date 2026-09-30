@@ -5,6 +5,29 @@ the project aims to follow semantic versioning.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-30
+
+### Added
+- Corpus accuracy. The port was scored over the full 16-meeting AMI-SDM test set
+  (base 15.79%, large 13.76% DER), matching DiariZen's published ~15.8%, and over
+  31 VoxConverse files with 12-21 speakers (base 7.24%, large 6.35% at collar
+  0.25), where it finds 8-23 speakers and never caps the count. New
+  `validation/eval_corpus.py`.
+- Compiled-model caching: `CoreMLBackend` caches the `.mlmodelc` next to the
+  `.mlpackage`, so a host that spawns the CLI per file no longer recompiles it
+  every run.
+- `scripts/export-models.sh [base|large]` for one-command model export.
+- Measured energy numbers in `RESULTS.md` (the ANE draws 0 W under the default
+  policy).
+- README infographics generated from source: pipeline diagram, benchmark panels,
+  stat tiles, the example timeline, and the AMI and VoxConverse accuracy charts.
+- swift-format lint in CI, `CONTRIBUTING.md`, issue and pull-request templates,
+  Dependabot, and a prebuilt `diarizen-cli` binary attached to the release.
+
+### Fixed
+- `benchmarks/energy.sh` crashed under macOS bash 3.2 on the default `cpu-gpu`
+  path (empty-array expansion under `set -u`).
+
 ## [0.1.0] - 2026-09-29
 
 First working release of the Apple Silicon port.
@@ -34,5 +57,6 @@ First working release of the Apple Silicon port.
 - The default compute policy is CPU plus GPU. The Neural Engine is not used for
   this model; `benchmarks/RESULTS.md` has the compute-plan evidence.
 
-[Unreleased]: https://github.com/NikiO-INO/diarizen-apple/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/NikiO-INO/diarizen-apple/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/NikiO-INO/diarizen-apple/releases/tag/v0.1.1
 [0.1.0]: https://github.com/NikiO-INO/diarizen-apple/releases/tag/v0.1.0
