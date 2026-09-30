@@ -52,8 +52,9 @@ offline, as a self-contained Swift binary plus CoreML model files.
   </picture>
 </p>
 
-Numbers on an M2 Pro; on AMI EN2002a the base model scores 21.16% DER and the
-large model 17.50%. Beyond the numbers:
+Numbers on an M2 Pro. Over the full AMI-SDM test set (16 meetings) the base model
+scores 15.79% DER, matching DiariZen's published ~15.8%; on the single EN2002a
+meeting, base is 21.16% and large 17.50%. Beyond the numbers:
 
 - Validated stage by stage against the original pipeline, from the mel frontend
   through clustering, with tolerances recorded in `validation/`.
@@ -161,10 +162,11 @@ explains the flow in full.
 ## Accuracy and benchmarks
 
 Measured on an Apple M2 Pro (8P + 4E, 32 GB), macOS 27.0. Speed and memory use a
-30 s clip with `base-s80-md`; the full-meeting runtime and accuracy use the full
-AMI EN2002a meeting (35.7 min, 4 speakers, single distant mic) against the human
-reference. Model loading is excluded. Reproduce with `benchmarks/run.sh` and
-`validation/eval_ami.py`.
+30 s clip with `base-s80-md`; the full-meeting runtime uses AMI EN2002a (35.7 min,
+4 speakers, single distant mic); accuracy is the corpus DER over the full 16-meeting
+AMI-SDM test set, with EN2002a shown as one per-meeting point. Model loading is
+excluded. Reproduce with `benchmarks/run.sh`, `validation/eval_ami.py`, and
+`validation/eval_corpus.py`.
 
 <p align="center">
   <picture>

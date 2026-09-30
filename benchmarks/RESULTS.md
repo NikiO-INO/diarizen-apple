@@ -32,11 +32,34 @@ level (~29% argmax, accumulates through its 24 WavLM layers) but is tolerated
 downstream; base-s80-md remains the tensor-faithful default (1.90% fidelity).
 
 The base port reproduces DiariZen's accuracy on a real long meeting (0.06 pt from the
-PyTorch pipeline vs the reference; 1.90% DER between the two outputs). ~21% is this
-single hard meeting's difficulty — DiariZen's published **15.8%** is the AMI-SDM
-*corpus average*, and PyTorch scores the same ~21% here. The 35-min file exercised
-**N = 2238** clustering embeddings (which forced the O(n²) AHC — see the perf commit).
-Runtime: Swift **151 s** (RTF 0.071) vs PyTorch-CPU **3042 s** (~20×).
+PyTorch pipeline vs the reference; 1.90% DER between the two outputs). ~21% is just
+this single hard meeting's difficulty: over the whole test set the port scores
+**15.79%** (see the corpus section below), matching DiariZen's published **15.8%**.
+The 35-min file exercised **N = 2238** clustering embeddings (which forced the O(n²)
+AHC — see the perf commit). Runtime: Swift **151 s** (RTF 0.071) vs PyTorch-CPU
+**3042 s** (~20×).
+
+## Corpus accuracy (full AMI-SDM test set)
+
+Scored over the **whole 16-meeting AMI-SDM test set** (`pyannote/AMI-diarization-setup`
+`only_words` references, SDM `Array1-01` audio), with the same `DiarizationErrorRate()`
+defaults accumulated into one duration-weighted number:
+
+**Corpus DER (base-s80-md) = 15.79%** over 16 meetings (528 min), matching DiariZen's
+published AMI-SDM ~15.8%. Per meeting it ranges from 9.12% (TS3003b) to 21.88%
+(EN2002d); EN2002a (21.16%) is one of the harder ones. Reproduce with
+`validation/eval_corpus.py --dir build/ami --tag swift`.
+
+| Meeting | DER % | | Meeting | DER % |
+|---|--:|---|---|--:|
+| ES2004a | 20.44 | | TS3003a | 21.17 |
+| ES2004b | 13.23 | | TS3003b |  9.12 |
+| ES2004c | 11.66 | | TS3003c | 13.52 |
+| ES2004d | 16.05 | | TS3003d | 19.19 |
+| IS1009a | 18.37 | | EN2002a | 21.16 |
+| IS1009b | 13.18 | | EN2002b | 17.46 |
+| IS1009c | 10.55 | | EN2002c | 14.06 |
+| IS1009d | 14.92 | | EN2002d | 21.88 |
 
 ## Perf notes
 
