@@ -54,7 +54,9 @@ offline, as a self-contained Swift binary plus CoreML model files.
 
 Numbers on an M2 Pro. Over the full AMI-SDM test set (16 meetings) the base model
 scores 15.79% DER (matching DiariZen's published ~15.8%) and the large model 13.76%;
-on the single EN2002a meeting they are 21.16% and 17.50%. Beyond the numbers:
+on the single EN2002a meeting they are 21.16% and 17.50%. On VoxConverse files with
+12-21 speakers it scores 7.24% DER (collar 0.25) and finds up to 23 speakers, where
+models capped at 8 fail. Beyond the numbers:
 
 - Validated stage by stage against the original pipeline, from the mel frontend
   through clustering, with tolerances recorded in `validation/`.

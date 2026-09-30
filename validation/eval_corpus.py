@@ -32,11 +32,13 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dir", default="build/ami")
     ap.add_argument("--tag", default="swift", help="hypothesis suffix: {meeting}.<tag>.rttm")
+    ap.add_argument("--collar", type=float, default=0.0,
+                    help="forgiveness collar in seconds (0 for AMI, 0.25 for VoxConverse)")
     args = ap.parse_args()
 
     from pyannote.metrics.diarization import DiarizationErrorRate
 
-    metric = DiarizationErrorRate()
+    metric = DiarizationErrorRate(collar=args.collar)
     rows = []
     for ref_path in sorted(glob.glob(os.path.join(args.dir, "*.ref.rttm"))):
         meeting = os.path.basename(ref_path)[: -len(".ref.rttm")]
