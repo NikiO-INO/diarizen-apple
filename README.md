@@ -94,12 +94,10 @@ Export the CoreML models once with Python, then build and run the Swift binary.
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# 2. Export the three CoreML artifacts for a checkpoint into build/coreml/.
+# 2. Export the CoreML models for a checkpoint into build/coreml/.
 #    This downloads the CC BY-NC weights from Hugging Face; accept the license
-#    on the model page first.
-python conversion/export_coreml.py           --model BUT-FIT/diarizen-wavlm-base-s80-md --out build/coreml
-python conversion/export_embedding_coreml.py --model BUT-FIT/diarizen-wavlm-base-s80-md --out build/coreml
-python conversion/export_plda.py             --model BUT-FIT/diarizen-wavlm-base-s80-md --out build/coreml/plda_transform.json
+#    on the model page first. (The three underlying steps are in MODELS.md.)
+scripts/export-models.sh base
 
 # 3. (optional) Check parity against PyTorch
 python validation/compare_pytorch_coreml.py  --model BUT-FIT/diarizen-wavlm-base-s80-md --coreml build/coreml
