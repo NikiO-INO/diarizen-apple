@@ -48,7 +48,7 @@ offline, as a self-contained Swift binary plus CoreML model files.
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/highlights-dark.svg">
-    <img alt="Real-time factor 0.037 (about 16x faster than PyTorch CPU), about 300 MB peak memory (Python-free at inference), 17.50% DER on AMI EN2002a with the large model, and no speaker cap." src="assets/highlights-light.svg" width="100%">
+    <img alt="Real-time factor 0.037 (about 16x faster than PyTorch CPU), about 300 MB peak memory (Python-free at inference), 15.8% corpus DER on the AMI-SDM test set, and no speaker cap." src="assets/highlights-light.svg" width="100%">
   </picture>
 </p>
 
