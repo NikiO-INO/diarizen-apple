@@ -15,7 +15,7 @@ def esc(s):
 TILES = [
     ("0.037", "real-time factor", "~16x vs PyTorch CPU"),
     ("~300 MB", "peak memory", "no Python at inference"),
-    ("17.50%", "DER on AMI EN2002a", "large model; 21.16% base"),
+    ("15.8%", "DER · AMI-SDM corpus", "base; large 13.76%"),
     ("∞", "speakers", "no cap"),
 ]
 TILE_THEME = {
@@ -32,7 +32,7 @@ def tiles(mode):
     tw = (W - gap * (len(TILES) - 1)) // len(TILES)
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" '
            f'height="{H}" role="img" aria-label="Highlights: real-time factor 0.037, '
-           f'about 300 MB peak memory, 17.50% DER, no speaker cap">']
+           f'about 300 MB peak memory, 15.8% corpus DER, no speaker cap">']
     for i, (num, l1, l2) in enumerate(TILES):
         x = i * (tw + gap)
         cx = x + tw // 2
