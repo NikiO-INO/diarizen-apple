@@ -181,6 +181,28 @@ the upstream RTTM at 0.495% DER. On the full meeting the Swift pipeline runs in
 151 s against 3042 s for PyTorch on CPU, about 20 times faster. Full numbers,
 per-stage timings, and the honest caveats are in `benchmarks/RESULTS.md`.
 
+Across the full 16-meeting AMI-SDM test set the corpus DER is 15.79% (base) and
+13.76% (large), matching DiariZen's published ~15.8%. Per meeting:
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/corpus-dark.svg">
+    <img alt="AMI-SDM per-meeting DER, base vs large, over the 16-meeting test set; corpus average base 15.79%, large 13.76%" src="assets/corpus-light.svg" width="100%">
+  </picture>
+</p>
+
+Speaker count is where capped models fail. On 31 VoxConverse files with 12-21
+speakers (in the wild, collar 0.25) the port scores 7.24% (base) and 6.35%
+(large) and finds 8-23 speakers per file, never capping at 8 the way Sortformer
+or Nemotron would:
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/vox-dark.svg">
+    <img alt="VoxConverse per-file DER, base vs large, on the 31 files with 12-21 speakers, collar 0.25; corpus base 7.24%, large 6.35%" src="assets/vox-light.svg" width="100%">
+  </picture>
+</p>
+
 ## Limitations
 
 - **The Neural Engine is not used.** CoreML's planner places all 643 ops of this
