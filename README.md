@@ -53,8 +53,8 @@ offline, as a self-contained Swift binary plus CoreML model files.
 </p>
 
 Numbers on an M2 Pro. Over the full AMI-SDM test set (16 meetings) the base model
-scores 15.79% DER, matching DiariZen's published ~15.8%; on the single EN2002a
-meeting, base is 21.16% and large 17.50%. Beyond the numbers:
+scores 15.79% DER (matching DiariZen's published ~15.8%) and the large model 13.76%;
+on the single EN2002a meeting they are 21.16% and 17.50%. Beyond the numbers:
 
 - Validated stage by stage against the original pipeline, from the mel frontend
   through clustering, with tolerances recorded in `validation/`.
