@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Render the VoxConverse many-speaker infographic (light + dark SVG).
+"""Render the VoxConverse many-speaker scatter (light + dark SVG).
 
     python benchmarks/plot_vox.py
 
-Per-file DER on the 31 VoxConverse files with >= 12 speakers, scored with the
-standard 0.25 s collar (validation/eval_corpus.py --dir build/vox --collar 0.25),
-base and large. Shows the port keeps DER low across 12-21 speakers and never caps
-the count.
+DER vs number of speakers for the 31 VoxConverse files with >= 12 speakers,
+scored with the standard 0.25 s collar (validation/eval_corpus.py --collar 0.25),
+base and large. The point is that DER does not climb as the speaker count grows:
+the port handles 12-21 speakers and never caps the count.
 """
 from pathlib import Path
 
@@ -28,73 +28,81 @@ DATA = [
     ("aorju", 12, 7.27, 4.66),
 ]
 BASE_CORPUS, LARGE_CORPUS = 7.24, 6.35
-AXIS_MAX = 20.0
+X_MIN, X_MAX = 11.3, 21.7
+Y_MIN, Y_MAX = 0.0, 20.0
 
 THEME = {
-    "light": {"surface": "#fcfcfb", "ink": "#0b0b0b", "sub": "#52514e",
-              "muted": "#898781", "grid": "#e1e0d9", "base": "#2a78d6", "large": "#1baf7a"},
-    "dark": {"surface": "#1a1a19", "ink": "#ffffff", "sub": "#c3c2b7",
-             "muted": "#898781", "grid": "#2c2c2a", "base": "#3987e5", "large": "#199e70"},
+    "light": {"surface": "#fcfcfb", "ink": "#0b0b0b", "sub": "#52514e", "muted": "#898781",
+              "grid": "#ecebe4", "axis": "#c3c2b7", "base": "#2a78d6", "large": "#1baf7a"},
+    "dark": {"surface": "#1a1a19", "ink": "#ffffff", "sub": "#c3c2b7", "muted": "#898781",
+             "grid": "#262625", "axis": "#383835", "base": "#3987e5", "large": "#28c286"},
 }
 
-W = 920
-LM, RM = 150, 46
-BAR_AREA = W - LM - RM
-ROW_H = 21
-BAR_H = 8
-TOP = 80
+W, H = 900, 470
+L, RGT, TOPP, BOT = 52, 150, 84, 52
+PW = W - L - RGT
+PH = H - TOPP - BOT
+R = 5.5
 
 
 def render(mode):
     c = THEME[mode]
-    rows = sorted(DATA, key=lambda r: (-r[1], r[2]))
-    h = TOP + len(rows) * ROW_H + 26
-    px = BAR_AREA / AXIS_MAX
-    o = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {h}" width="{W}" '
-         f'height="{h}" role="img" aria-label="VoxConverse per-file DER, base vs large, '
-         f'on 12 to 21 speaker files; corpus base 7.24%, large 6.35%, no cap">']
-    o.append(f'<rect x="0" y="0" width="{W}" height="{h}" fill="{c["surface"]}"/>')
-    o.append(f'<text x="0" y="24" font-family="{SANS}" font-size="18" font-weight="700" '
-             f'fill="{c["ink"]}">VoxConverse: DER on 12-21 speaker files</text>')
-    o.append(f'<text x="0" y="45" font-family="{SANS}" font-size="12.5" fill="{c["sub"]}">'
-             f'in the wild, collar 0.25s · corpus DER base 7.24%, large 6.35% · finds '
-             f'8-23 speakers, never capped at 8</text>')
+
+    def X(v):
+        return L + (v - X_MIN) / (X_MAX - X_MIN) * PW
+
+    def Y(v):
+        return TOPP + (1 - (v - Y_MIN) / (Y_MAX - Y_MIN)) * PH
+
+    o = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" '
+         f'height="{H}" role="img" aria-label="VoxConverse DER vs number of speakers, '
+         f'base and large; DER stays low across 12 to 21 speakers, no cap">']
+    o.append(f'<rect x="0" y="0" width="{W}" height="{H}" fill="{c["surface"]}"/>')
+    o.append(f'<text x="0" y="26" font-family="{SANS}" font-size="19" font-weight="700" '
+             f'fill="{c["ink"]}">VoxConverse: accuracy vs number of speakers</text>')
+    o.append(f'<text x="0" y="48" font-family="{SANS}" font-size="13" fill="{c["sub"]}">'
+             f'each dot is one in-the-wild file (collar 0.25s) · DER stays low as the '
+             f'speaker count grows, and the count is never capped at 8</text>')
     # legend
-    lx = W - 232
-    o.append(f'<rect x="{lx}" y="14" width="12" height="12" rx="3" fill="{c["base"]}"/>')
-    o.append(f'<text x="{lx+18}" y="24" font-family="{SANS}" font-size="12.5" fill="{c["sub"]}">base</text>')
-    lx2 = lx + 74
-    o.append(f'<rect x="{lx2}" y="14" width="12" height="12" rx="3" fill="{c["large"]}"/>')
-    o.append(f'<text x="{lx2+18}" y="24" font-family="{SANS}" font-size="12.5" fill="{c["sub"]}">large-v2</text>')
-    # column headers
-    o.append(f'<text x="8" y="{TOP-10}" font-family="{SANS}" font-size="10.5" fill="{c["muted"]}">file</text>')
-    o.append(f'<text x="{LM-10}" y="{TOP-10}" text-anchor="end" font-family="{SANS}" font-size="10.5" fill="{c["muted"]}">spk</text>')
-    plot_bottom = TOP + len(rows) * ROW_H - 3
-    # gridlines
-    t = 0
-    while t <= AXIS_MAX:
-        gx = LM + t * px
-        o.append(f'<line x1="{gx:.1f}" y1="{TOP-4}" x2="{gx:.1f}" y2="{plot_bottom}" '
-                 f'stroke="{c["grid"]}" stroke-width="1"/>')
-        o.append(f'<text x="{gx:.1f}" y="{plot_bottom+16}" text-anchor="middle" '
-                 f'font-family="{SANS}" font-size="10" fill="{c["muted"]}">{int(t)}%</text>')
-        t += 5
-    # corpus average dashed lines, labeled at top
-    for val, key, lab in ((BASE_CORPUS, "base", f"base {BASE_CORPUS}"), (LARGE_CORPUS, "large", f"large {LARGE_CORPUS}")):
-        rx = LM + val * px
-        o.append(f'<line x1="{rx:.1f}" y1="{TOP-4}" x2="{rx:.1f}" y2="{plot_bottom}" '
-                 f'stroke="{c[key]}" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.85"/>')
-    # rows
-    for i, (fid, rspk, b, l) in enumerate(rows):
-        ry = TOP + i * ROW_H
-        o.append(f'<text x="8" y="{ry+14}" font-family="{MONO}" font-size="10.5" fill="{c["sub"]}">{fid}</text>')
-        o.append(f'<text x="{LM-10}" y="{ry+14}" text-anchor="end" font-family="{MONO}" font-size="10.5" fill="{c["muted"]}">{rspk}</text>')
-        for val, key, dy in ((b, "base", 2), (l, "large", 2 + BAR_H + 1)):
-            bw = max(2, val * px)
-            o.append(f'<rect x="{LM}" y="{ry+dy}" width="{bw:.1f}" height="{BAR_H}" rx="2.5" fill="{c[key]}"/>')
-    # x-axis title
-    o.append(f'<text x="{LM+BAR_AREA/2}" y="{h-8}" text-anchor="middle" font-family="{SANS}" '
-             f'font-size="11" fill="{c["muted"]}">diarization error rate (lower is better) · sorted by speaker count</text>')
+    lx = W - 250
+    o.append(f'<circle cx="{lx+6}" cy="20" r="6" fill="{c["base"]}"/>')
+    o.append(f'<text x="{lx+18}" y="24" font-family="{SANS}" font-size="13" fill="{c["sub"]}">base</text>')
+    lx2 = lx + 78
+    o.append(f'<circle cx="{lx2+6}" cy="20" r="6" fill="{c["large"]}"/>')
+    o.append(f'<text x="{lx2+18}" y="24" font-family="{SANS}" font-size="13" fill="{c["sub"]}">large-v2</text>')
+
+    # y gridlines + labels
+    yv = 0
+    while yv <= Y_MAX:
+        gy = Y(yv)
+        o.append(f'<line x1="{L}" y1="{gy:.1f}" x2="{L+PW}" y2="{gy:.1f}" stroke="{c["grid"]}" stroke-width="1"/>')
+        o.append(f'<text x="{L-8}" y="{gy+4:.1f}" text-anchor="end" font-family="{SANS}" '
+                 f'font-size="10.5" fill="{c["muted"]}">{int(yv)}%</text>')
+        yv += 5
+    # x ticks (speaker counts)
+    for sp in range(12, 22):
+        gx = X(sp)
+        o.append(f'<text x="{gx:.1f}" y="{TOPP+PH+18}" text-anchor="middle" font-family="{SANS}" '
+                 f'font-size="10.5" fill="{c["muted"]}">{sp}</text>')
+    o.append(f'<text x="{L+PW/2}" y="{H-8}" text-anchor="middle" font-family="{SANS}" '
+             f'font-size="12" fill="{c["sub"]}">number of speakers in the file</text>')
+    o.append(f'<text x="{L-38}" y="{TOPP-14}" font-family="{SANS}" font-size="11" '
+             f'fill="{c["muted"]}">DER</text>')
+
+    # corpus average horizontal dashed lines
+    for val, key, lab in ((BASE_CORPUS, "base", "base avg 7.24%"), (LARGE_CORPUS, "large", "large avg 6.35%")):
+        gy = Y(val)
+        o.append(f'<line x1="{L}" y1="{gy:.1f}" x2="{L+PW}" y2="{gy:.1f}" stroke="{c[key]}" '
+                 f'stroke-width="1.5" stroke-dasharray="4 3" opacity="0.7"/>')
+        o.append(f'<text x="{L+PW+8}" y="{gy+4:.1f}" font-family="{MONO}" font-size="10.5" '
+                 f'fill="{c[key]}">{lab}</text>')
+
+    # points (deterministic horizontal jitter per file so same-count files separate)
+    for i, (fid, spk, b, l) in enumerate(DATA):
+        jit = (((i * 37) % 11) / 11.0 - 0.5) * 0.58
+        cx = X(spk + jit)
+        o.append(f'<circle cx="{cx:.1f}" cy="{Y(b):.1f}" r="{R}" fill="{c["base"]}" fill-opacity="0.72"/>')
+        o.append(f'<circle cx="{cx:.1f}" cy="{Y(l):.1f}" r="{R}" fill="{c["large"]}" fill-opacity="0.72"/>')
     return "\n".join(o) + "\n</svg>\n"
 
 
