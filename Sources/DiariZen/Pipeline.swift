@@ -111,8 +111,11 @@ public final class DiarizationPipeline {
     /// per-(chunk, speaker) embeddings. Reproduces pyannote's get_segmentations +
     /// get_embeddings (exclude_overlap) up to clustering.
     public func extractFeatures(waveform: [Float], sampleRate: Int) throws -> DiarizationFeatures {
-        let windowSamples = Self.windowSamples
-        let stepSamples = Int((Self.stepSeconds * Double(sampleRate)).rounded())
+        // Window from the model (16 s released, 8 s meeting-base); step is
+        // segmentation_step 0.1 of it, as in the DiariZen configs.
+        let windowSamples = segmentation.inputSamples
+        let stepSeconds = 0.1 * Double(windowSamples) / Double(sampleRate)
+        let stepSamples = Int((stepSeconds * Double(sampleRate)).rounded())
         let n = waveform.count
 
         // Chunk starts: complete windows via unfold, plus a zero-padded last chunk.
@@ -164,7 +167,7 @@ public final class DiarizationPipeline {
             binarized: binarized,
             embeddings: embeddings,
             window: SlidingWindow(
-                start: 0, duration: Double(windowSamples) / Double(sampleRate), step: Self.stepSeconds)
+                start: 0, duration: Double(windowSamples) / Double(sampleRate), step: stepSeconds)
         )
     }
 

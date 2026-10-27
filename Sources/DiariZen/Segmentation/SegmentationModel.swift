@@ -7,6 +7,13 @@ public protocol SegmentationModel {
     /// Powerset log-probs for one fixed chunk: `[numFrames][numClasses]`.
     /// The pipeline decodes the powerset frames downstream (Phase 3).
     func segment(chunk: [Float]) throws -> SegmentationOutput
+    /// Samples per chunk the model takes (16 s for the released checkpoints,
+    /// 8 s for diarizen-meeting-base).
+    var inputSamples: Int { get }
+}
+
+extension SegmentationModel {
+    public var inputSamples: Int { CoreMLSegmentation.windowSamples }
 }
 
 /// Raw segmentation output for one chunk: `frames[f][c]` is the log-prob of
@@ -19,17 +26,25 @@ public struct SegmentationOutput: Sendable {
 /// CoreML-backed segmentation. Input/output feature names and the static input
 /// geometry mirror `conversion/export_coreml.py`.
 public struct CoreMLSegmentation: SegmentationModel {
-    /// Fixed model input geometry: 16 s × 16 kHz mono = 256000 samples.
+    /// Input geometry of the released checkpoints: 16 s × 16 kHz mono = 256000 samples.
     public static let windowSamples = 256_000
     static let inputName = "waveform"
     static let outputName = "segmentation"
 
     let backend: CoreMLBackend
-    public init(backend: CoreMLBackend) { self.backend = backend }
+    /// The model's static input length, read from its description.
+    public let inputSamples: Int
+
+    public init(backend: CoreMLBackend) {
+        self.backend = backend
+        let shape = backend.model.modelDescription.inputDescriptionsByName[Self.inputName]?
+            .multiArrayConstraint?.shape
+        self.inputSamples = shape?.last?.intValue ?? Self.windowSamples
+    }
 
     public func segment(chunk: [Float]) throws -> SegmentationOutput {
-        let n = Self.windowSamples
-        // Static (1, 1, 256000) input — pad or truncate a partial chunk.
+        let n = inputSamples
+        // Static (1, 1, inputSamples) input — pad or truncate a partial chunk.
         let input = try MLMultiArray(shape: [1, 1, NSNumber(value: n)], dataType: .float32)
         input.withUnsafeMutableBytes { raw, _ in
             let dst = raw.bindMemory(to: Float32.self)

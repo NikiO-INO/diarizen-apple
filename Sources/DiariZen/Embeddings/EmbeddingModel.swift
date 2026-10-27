@@ -33,7 +33,7 @@ public extension EmbeddingModel {
 /// CoreML-backed embeddings: Swift fbank → CoreML ResNet34. Feature names + shapes
 /// mirror `conversion/export_embedding_coreml.py`.
 public struct CoreMLEmbedding: EmbeddingModel {
-    public static let cropSamples = 256_000  // 16 s window
+    public static let cropSamples = 256_000  // 16 s window (released checkpoints)
     public static let segFrames = 799  // weights resolution (segmentation frames)
     static let inputFbank = "fbank"
     static let inputWeights = "weights"
@@ -41,19 +41,30 @@ public struct CoreMLEmbedding: EmbeddingModel {
 
     let backend: CoreMLBackend
     let fbankFrontend: KaldiFbank
+    /// Crop the model was exported for, from its fbank input (F frames of a
+    /// 25 ms / 10 ms Kaldi fbank): (F - 1) * 160 + 480 samples, i.e. 256000 for
+    /// the released 16 s checkpoints and 128000 for 8 s diarizen-meeting-base.
+    let cropSamples: Int
 
     public init(backend: CoreMLBackend, fbank: KaldiFbank = KaldiFbank()) {
         self.backend = backend
         self.fbankFrontend = fbank
+        let shape = backend.model.modelDescription.inputDescriptionsByName[Self.inputFbank]?
+            .multiArrayConstraint?.shape
+        if let shape, shape.count >= 2, shape[1].intValue > 1 {
+            self.cropSamples = (shape[1].intValue - 1) * 160 + 480
+        } else {
+            self.cropSamples = Self.cropSamples
+        }
     }
 
     public func fbank(region: [Float]) -> [[Float]] {
-        // Pad/truncate to the fixed 16 s crop so the frame count matches the model.
+        // Pad/truncate to the model's crop so the frame count matches the model.
         var window = region
-        if window.count != Self.cropSamples {
-            window = Array(window.prefix(Self.cropSamples))
-            if window.count < Self.cropSamples {
-                window.append(contentsOf: repeatElement(0, count: Self.cropSamples - window.count))
+        if window.count != cropSamples {
+            window = Array(window.prefix(cropSamples))
+            if window.count < cropSamples {
+                window.append(contentsOf: repeatElement(0, count: cropSamples - window.count))
             }
         }
         return fbankFrontend.compute(window)
