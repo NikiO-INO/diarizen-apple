@@ -35,7 +35,13 @@ def main() -> None:
     ap.add_argument("--out", default="build/coreml")
     ap.add_argument("--precision", choices=["fp16", "fp32"], default="fp16")
     ap.add_argument("--max-batch", type=int, default=64, help="upper bound for the flexible batch dim")
+    ap.add_argument("--crop-seconds", type=float, default=16.0,
+                    help="segmentation window length (16 for the released checkpoints, 8 for diarizen-meeting-base)")
     args = ap.parse_args()
+    global CROP_SAMPLES, SEG_FRAMES
+    CROP_SAMPLES = int(args.crop_seconds * 16_000)
+    # WavLM frames: 25 ms window, 20 ms hop -> (samples - 400) // 320 + 1 (799 for 16 s, 399 for 8 s).
+    SEG_FRAMES = (CROP_SAMPLES - 400) // 320 + 1
 
     import coremltools as ct
     import torch
