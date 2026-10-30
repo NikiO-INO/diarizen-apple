@@ -118,9 +118,9 @@ wrappers once the pipeline is proven.
 - [ ] Deferred (low value): ORT full-pipeline (only seg is in ONNX; not a production target).
 - **Gate met:** reproducible benchmark numbers + honest claims; ANE understood, not overclaimed.
 
-## Phase 5 — meetlify integration  ✅ DONE
-- [x] Added a `diarizen` diarization engine to meetlify (sidecar over `diarizen-cli`,
-      RTTM parsing via `turns_from_rttm`). Selectable in Settings, A/B-able against
+## Phase 5 — host-app integration  ✅ DONE
+- [x] Added a `diarizen` diarization engine to a host meeting app (sidecar over `diarizen-cli`,
+      RTTM parsing on the host side). Selectable in Settings, A/B-able against
       Nemotron/FluidAudio. `scripts/build-diarizen.sh [base|large]` builds the binary
       and installs the CoreML models into the app-data dir.
 - [x] Shipped in a production build and validated on a real 22-speaker town hall:

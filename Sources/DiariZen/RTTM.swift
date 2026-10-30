@@ -1,6 +1,6 @@
 import Foundation
 
-/// RTTM hypothesis I/O. The format hosts (incl. meetlify's `turns_from_rttm`)
+/// RTTM hypothesis I/O. The format host apps
 /// already parse: `SPEAKER <file> 1 <start> <dur> <NA> <NA> speaker_<n> <NA> <NA>`.
 public enum RTTM {
     public static func serialize(_ turns: [SpeakerTurn], fileId: String) -> String {
