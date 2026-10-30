@@ -277,9 +277,8 @@ diarizen-apple/
 
 `diarizen-cli` takes an audio file and writes an RTTM hypothesis, the same shape
 as the other sidecar diarizers. A host app can call it as an external process and
-parse the RTTM. The meetlify meeting app uses it this way,
-selectable as the "DiariZen" engine, so its no-cap clustering handles meetings
-with many speakers that capped models miss.
+parse the RTTM. Offered as one engine among others, its no-cap clustering
+handles meetings with many speakers that capped models miss.
 
 ## Contributing
 
