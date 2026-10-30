@@ -90,7 +90,22 @@ per-window labels and cluster assignments back into a single RTTM.
 
 ## Quick start
 
-Export the CoreML models once with Python, then build and run the Swift binary.
+Get the CoreML models, then build and run the Swift binary.
+
+The fastest way is to download the ready-made conversions from Hugging Face.
+They are gated: open the model page, accept the CC BY-NC 4.0 terms, and log in
+with `hf auth login` once.
+
+```bash
+hf download nikioth/diarizen-wavlm-base-s80-md-coreml --local-dir build/coreml
+# or the more accurate large model:
+# hf download nikioth/diarizen-wavlm-large-s80-md-v2-coreml --local-dir build/coreml-large
+
+swift build -c release
+swift run  -c release diarizen-cli path/to/audio.wav --models build/coreml --output out.rttm
+```
+
+To convert the models yourself instead, export them once with Python:
 
 ```bash
 # 1. Conversion environment (only to produce the CoreML models)
@@ -155,9 +170,13 @@ The code in this repository is MIT. The DiariZen **model weights** are
 from the training data. Converted CoreML and ONNX artifacts are derivatives of
 those weights and carry the same restriction.
 
-Weights are never committed here. You download the checkpoint yourself under its
-license and run the conversion locally. `MODELS.md` lists the checkpoints and
-explains the flow in full.
+Weights are never committed here. Ready-made CoreML conversions of both
+checkpoints are on Hugging Face, gated behind the same non-commercial terms:
+[`nikioth/diarizen-wavlm-base-s80-md-coreml`](https://huggingface.co/nikioth/diarizen-wavlm-base-s80-md-coreml)
+and
+[`nikioth/diarizen-wavlm-large-s80-md-v2-coreml`](https://huggingface.co/nikioth/diarizen-wavlm-large-s80-md-v2-coreml).
+Or download the checkpoint yourself under its license and run the conversion
+locally. `MODELS.md` lists the checkpoints and explains both paths in full.
 
 ## Accuracy and benchmarks
 
@@ -258,9 +277,8 @@ diarizen-apple/
 
 `diarizen-cli` takes an audio file and writes an RTTM hypothesis, the same shape
 as the other sidecar diarizers. A host app can call it as an external process and
-parse the RTTM. The meetlify meeting app uses it this way,
-selectable as the "DiariZen" engine, so its no-cap clustering handles meetings
-with many speakers that capped models miss.
+parse the RTTM. Offered as one engine among others, its no-cap clustering
+handles meetings with many speakers that capped models miss.
 
 ## Contributing
 

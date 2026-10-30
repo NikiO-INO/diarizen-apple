@@ -3,7 +3,7 @@ import DiariZen
 import Foundation
 
 // Thin CLI: audio → RTTM, mirroring the `fluidaudiocli nemotron3-diarize`
-// interface so hosts (meetlify) can drop it in as a sidecar diarization engine.
+// interface so host apps can drop it in as a sidecar diarization engine.
 //
 //   diarizen-cli <audio.wav> --models <dir> [--compute-units cpu-gpu|all|cpu-ane|cpu]
 //                            [--output <rttm>]
